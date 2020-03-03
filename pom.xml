@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    Copyright © 2019 Jeremy Custenborder (jcustenborder@gmail.com)
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+
+-->
+<project
+        xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
+        xmlns="http://maven.apache.org/POM/4.0.0"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.github.jcustenborder.kafka.connect</groupId>
+        <artifactId>kafka-connect-parent</artifactId>
+        <version>2.2.1-cp1</version>
+    </parent>
+    <artifactId>kafka-connect-example</artifactId>
+    <version>0.0.2-SNAPSHOT</version>
+    <name>kafka-connect-example</name>
+    <description>A Kafka Connect connector receiving data from example.</description>
+    <url>https://github.com/jcustenborder/kafka-connect-example</url>
+    <inceptionYear>2019</inceptionYear>
+    <licenses>
+        <license>
+            <name>The Apache License, Version 2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+    <developers>
+        <developer>
+            <id>jcustenborder</id>
+            <name>Jeremy Custenborder</name>
+            <url>https://github.com/jcustenborder</url>
+            <roles>
+                <role>Committer</role>
+            </roles>
+        </developer>
+    </developers>
+    <scm>
+        <connection>scm:git:https://github.com/jcustenborder/kafka-connect-example.git</connection>
+        <developerConnection>scm:git:git@github.com:jcustenborder/kafka-connect-example.git
+        </developerConnection>
+        <url>https://github.com/jcustenborder/kafka-connect-example</url>
+    </scm>
+    <issueManagement>
+        <system>github</system>
+        <url>https://github.com/jcustenborder/kafka-connect-example/issues</url>
+    </issueManagement>
+    <dependencies/>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>com.github.jcustenborder.maven.plugins</groupId>
+                <artifactId>kafka-connect-maven-plugin</artifactId>
+                <version>0.1.2</version>
+                <executions>
+                    <execution>
+                        <id>generate-config</id>
+                        <goals>
+                            <goal>generate-config-classes</goal>
+                        </goals>
+                        <phase>generate-sources</phase>
+                        <configuration>
+                            <includeFiles>
+                                <includeFile>src/main/connect-config-classes/*.json</includeFile>
+                            </includeFiles>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!--
+            Uncomment to prepare a package for the Confluent Hub.
+            <plugin>
+                <groupId>io.confluent</groupId>
+                <artifactId>kafka-connect-maven-plugin</artifactId>
+                <configuration>
+                    <documentationUrl>
+                        https://jcustenborder.github.io/kafka-connect-documentation/
+                    </documentationUrl>
+                    <componentTypes>
+                        <componentType>sink</componentType>
+                    </componentTypes>
+                    <tags>
+                        <tag>Redis</tag>
+                    </tags>
+                    <title>Kafka Connect Redis</title>
+                </configuration>
+            </plugin>
+            -->
+        </plugins>
+    </build>
+</project>

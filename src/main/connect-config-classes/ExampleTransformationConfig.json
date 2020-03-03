@@ -1,0 +1,61 @@
+{
+  "name": "com.github.jcustenborder.kafka.connect.example.ExampleTransformationConfig",
+  "prefix": "example.",
+  "groups": [
+    {
+      "name": "SESSION",
+      "display": "Session Configuration",
+      "prefix": "session.",
+      "configItems": [
+        {
+          "configKey": "servers",
+          "type": "LIST",
+          "documentation": "Server(s) to connect to.",
+          "importance": "HIGH",
+          "width": "MEDIUM",
+          "defaultValue": [
+            "http://localhost:8081"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "SSL",
+      "display": "SSL Configuration",
+      "prefix": "ssl.",
+      "configItems": [
+        {
+          "configKey": "keystore.path",
+          "type": "STRING",
+          "documentation": "Location of the Java keystore to use.",
+          "importance": "HIGH",
+          "width": "MEDIUM",
+          "defaultValue": ""
+        },
+        {
+          "configKey": "keystore.password",
+          "type": "PASSWORD",
+          "documentation": "Location of the Java keystore to use.",
+          "importance": "HIGH",
+          "width": "MEDIUM"
+        },
+        {
+          "configKey": "truststore.path",
+          "type": "STRING",
+          "documentation": "Location of the Java truststore to use.",
+          "importance": "HIGH",
+          "width": "MEDIUM",
+          "defaultValue": ""
+        },
+        {
+          "configKey": "truststore.password",
+          "type": "PASSWORD",
+          "documentation": "Location of the Java truststore to use.",
+          "importance": "HIGH",
+          "width": "MEDIUM",
+          "defaultValue": "changeit"
+        }
+      ]
+    }
+  ]
+}

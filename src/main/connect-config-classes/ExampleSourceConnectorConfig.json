@@ -1,0 +1,24 @@
+{
+  "name": "com.github.jcustenborder.kafka.connect.example.ExampleSourceConnectorConfig",
+  "extends": "com.github.jcustenborder.kafka.connect.example.BaseConnectorConfig",
+  "prefix": "myconn.",
+  "groups": [
+    {
+      "name": "TARGET",
+      "display": "Target Configuration",
+      "prefix": "target.",
+      "configItems": [
+        {
+          "configKey": "servers",
+          "type": "LIST",
+          "documentation": "Server(s) to connect to.",
+          "importance": "HIGH",
+          "width": "MEDIUM",
+          "defaultValue": [
+            "http://localhost:8081"
+          ]
+        }
+      ]
+    }
+  ]
+}
