@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-    Copyright © 2019 Jeremy Custenborder (jcustenborder@gmail.com)
+    Copyright © 2020 Jeremy Custenborder (jcustenborder@gmail.com)
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -26,12 +26,12 @@
         <artifactId>kafka-connect-parent</artifactId>
         <version>2.2.1-cp1</version>
     </parent>
-    <artifactId>kafka-connect-example</artifactId>
+    <artifactId>kafka-connect-json-schema</artifactId>
     <version>0.0.2-SNAPSHOT</version>
-    <name>kafka-connect-example</name>
+    <name>kafka-connect-json-schema</name>
     <description>A Kafka Connect connector receiving data from example.</description>
-    <url>https://github.com/jcustenborder/kafka-connect-example</url>
-    <inceptionYear>2019</inceptionYear>
+    <url>https://github.com/jcustenborder/kafka-connect-json-schema</url>
+    <inceptionYear>2020</inceptionYear>
     <licenses>
         <license>
             <name>The Apache License, Version 2.0</name>
@@ -50,16 +50,28 @@
         </developer>
     </developers>
     <scm>
-        <connection>scm:git:https://github.com/jcustenborder/kafka-connect-example.git</connection>
-        <developerConnection>scm:git:git@github.com:jcustenborder/kafka-connect-example.git
+        <connection>scm:git:https://github.com/jcustenborder/kafka-connect-json-schema.git</connection>
+        <developerConnection>scm:git:git@github.com:jcustenborder/kafka-connect-json-schema.git
         </developerConnection>
-        <url>https://github.com/jcustenborder/kafka-connect-example</url>
+        <url>https://github.com/jcustenborder/kafka-connect-json-schema</url>
     </scm>
     <issueManagement>
         <system>github</system>
-        <url>https://github.com/jcustenborder/kafka-connect-example/issues</url>
+        <url>https://github.com/jcustenborder/kafka-connect-json-schema/issues</url>
     </issueManagement>
-    <dependencies/>
+    <dependencies>
+        <dependency>
+            <groupId>com.github.everit-org.json-schema</groupId>
+            <artifactId>org.everit.json.schema</artifactId>
+            <version>1.12.1</version>
+        </dependency>
+    </dependencies>
+    <repositories>
+        <repository>
+            <id>jitpack.io</id>
+            <url>https://jitpack.io</url>
+        </repository>
+    </repositories>
     <build>
         <plugins>
             <plugin>
