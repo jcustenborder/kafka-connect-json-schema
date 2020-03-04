@@ -20,7 +20,6 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Time;
 import org.apache.kafka.connect.data.Timestamp;
-import org.everit.json.schema.ObjectSchema;
 import org.everit.json.schema.internal.DateFormatValidator;
 import org.everit.json.schema.internal.DateTimeFormatValidator;
 import org.everit.json.schema.internal.TimeFormatValidator;
@@ -33,33 +32,20 @@ import java.io.IOException;
 import java.io.InputStream;
 
 import static com.github.jcustenborder.kafka.connect.utils.AssertSchema.assertSchema;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class SchemaConverterTest {
-
-  org.everit.json.schema.Schema jsonSchema(JSONObject rawSchema) {
-    return SchemaLoader.builder()
-        .draftV7Support()
-        .addFormatValidator(new DateFormatValidator())
-        .addFormatValidator(new TimeFormatValidator())
-        .addFormatValidator(new DateTimeFormatValidator())
-        .schemaJson(rawSchema)
-        .build()
-        .load()
-        .build();
-  }
+public class FromJsonSchemaConverterTest {
 
   org.everit.json.schema.Schema jsonSchema(String type) {
     JSONObject rawSchema = new JSONObject();
     rawSchema.put("type", type);
-    return jsonSchema(rawSchema);
+    return TestUtils.jsonSchema(rawSchema);
   }
 
   org.everit.json.schema.Schema jsonSchema(String type, String key1, String value1) {
     JSONObject rawSchema = new JSONObject();
     rawSchema.put("type", type);
     rawSchema.put(key1, value1);
-    return jsonSchema(rawSchema);
+    return TestUtils.jsonSchema(rawSchema);
   }
 
   org.everit.json.schema.Schema jsonSchema(String type, String key1, String value1, String key2, String value2) {
@@ -67,12 +53,12 @@ public class SchemaConverterTest {
     rawSchema.put("type", type);
     rawSchema.put(key1, value1);
     rawSchema.put(key2, value2);
-    return jsonSchema(rawSchema);
+    return TestUtils.jsonSchema(rawSchema);
   }
 
   void assertJsonSchema(org.apache.kafka.connect.data.Schema expected, org.everit.json.schema.Schema input) {
-    org.apache.kafka.connect.data.Schema actual = SchemaConverter.fromJSON(input);
-    assertSchema(expected, actual);
+    FromJsonState state = FromJsonSchemaConverter.fromJSON(input);
+    assertSchema(expected, state.schema);
   }
 
   @Test
@@ -144,6 +130,7 @@ public class SchemaConverterTest {
         .build();
     assertJsonSchema(expected, jsonSchema);
   }
+
   @Test
   public void nested() throws IOException {
     org.everit.json.schema.Schema jsonSchema = loadSchema("SchemaConverterTest/nested.schema.json");
@@ -167,7 +154,7 @@ public class SchemaConverterTest {
     JSONObject rawSchema = new JSONObject()
         .put("type", "array")
         .put("items", new JSONObject().put("type", "number"));
-    org.everit.json.schema.Schema jsonSchema = jsonSchema(rawSchema);
+    org.everit.json.schema.Schema jsonSchema = TestUtils.jsonSchema(rawSchema);
     assertJsonSchema(SchemaBuilder.array(Schema.FLOAT64_SCHEMA).build(), jsonSchema);
   }
 

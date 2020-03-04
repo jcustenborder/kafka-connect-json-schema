@@ -15,11 +15,18 @@
  */
 package com.github.jcustenborder.kafka.connect.json;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.BooleanNode;
+import com.fasterxml.jackson.databind.node.NumericNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableSet;
 import org.apache.kafka.connect.data.Date;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.data.Time;
 import org.apache.kafka.connect.data.Timestamp;
 import org.everit.json.schema.ArraySchema;
@@ -31,21 +38,29 @@ import org.everit.json.schema.StringSchema;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public abstract class SchemaConverter<T extends org.everit.json.schema.Schema> {
-  private static final Logger log = LoggerFactory.getLogger(SchemaConverter.class);
+public abstract class FromJsonSchemaConverter<T extends org.everit.json.schema.Schema, J extends JsonNode, V> {
+  private static final Logger log = LoggerFactory.getLogger(FromJsonSchemaConverter.class);
 
   protected abstract SchemaBuilder schemaBuilder(T schema);
 
   protected abstract ConversionKey key();
 
-  protected abstract void fromJSON(SchemaBuilder builder, T jsonSchema);
+  protected abstract FromJsonVisitor<J, V> jsonVisitor(Schema connectSchema, Map<String, FromJsonVisitor> visitors);
 
-  static final Map<ConversionKey, SchemaConverter<? extends org.everit.json.schema.Schema>> LOOKUP;
+
+  protected abstract void fromJSON(SchemaBuilder builder, T jsonSchema, Map<String, FromJsonVisitor> visitors);
+
+  static final Map<
+      ConversionKey,
+      FromJsonSchemaConverter<? extends org.everit.json.schema.Schema, ? extends JsonNode, ?>
+      > LOOKUP;
 
   static {
     LOOKUP = Stream.of(
@@ -58,21 +73,21 @@ public abstract class SchemaConverter<T extends org.everit.json.schema.Schema> {
         new DateTimeSchemaConverter(),
         new FloatSchemaConverter(),
         new ArraySchemaConverter()
-    ).collect(Collectors.toMap(SchemaConverter::key, c -> c));
+    ).collect(Collectors.toMap(FromJsonSchemaConverter::key, c -> c));
   }
 
-  public static Schema fromJSON(org.everit.json.schema.Schema jsonSchema) {
+  public static FromJsonState fromJSON(org.everit.json.schema.Schema jsonSchema) {
     return fromJSON(jsonSchema, false);
   }
 
-  public static Schema fromJSON(org.everit.json.schema.Schema jsonSchema, boolean isOptional) {
+  public static FromJsonState fromJSON(org.everit.json.schema.Schema jsonSchema, boolean isOptional) {
     if (jsonSchema instanceof ReferenceSchema) {
       ReferenceSchema referenceSchema = (ReferenceSchema) jsonSchema;
       jsonSchema = referenceSchema.getReferredSchema();
     }
     ConversionKey key = ConversionKey.of(jsonSchema);
 
-    SchemaConverter converter = LOOKUP.get(key);
+    FromJsonSchemaConverter converter = LOOKUP.get(key);
 
     if (null == converter) {
       throw new UnsupportedOperationException(
@@ -90,11 +105,14 @@ public abstract class SchemaConverter<T extends org.everit.json.schema.Schema> {
     if (isOptional) {
       builder.optional();
     }
-    converter.fromJSON(builder, jsonSchema);
-    return builder.build();
+    Map<String, FromJsonVisitor> visitors = new LinkedHashMap<>();
+    converter.fromJSON(builder, jsonSchema, visitors);
+    Schema schema = builder.build();
+    FromJsonVisitor visitor = converter.jsonVisitor(schema, visitors);
+    return FromJsonState.of(schema, visitor);
   }
 
-  static class BooleanSchemaConverter extends SchemaConverter<BooleanSchema> {
+  static class BooleanSchemaConverter extends FromJsonSchemaConverter<BooleanSchema, BooleanNode, Boolean> {
     @Override
     protected SchemaBuilder schemaBuilder(BooleanSchema schema) {
       return SchemaBuilder.bool();
@@ -106,12 +124,17 @@ public abstract class SchemaConverter<T extends org.everit.json.schema.Schema> {
     }
 
     @Override
-    protected void fromJSON(SchemaBuilder builder, BooleanSchema jsonSchema) {
+    protected FromJsonVisitor<BooleanNode, Boolean> jsonVisitor(Schema connectSchema, Map<String, FromJsonVisitor> visitors) {
+      return new FromJsonVisitor.BooleanVisitor(connectSchema);
+    }
+
+    @Override
+    protected void fromJSON(SchemaBuilder builder, BooleanSchema jsonSchema, Map<String, FromJsonVisitor> visitors) {
 
     }
   }
 
-  static class ObjectSchemaConverter extends SchemaConverter<ObjectSchema> {
+  static class ObjectSchemaConverter extends FromJsonSchemaConverter<ObjectSchema, ObjectNode, Struct> {
 
     @Override
     protected SchemaBuilder schemaBuilder(ObjectSchema schema) {
@@ -123,9 +146,14 @@ public abstract class SchemaConverter<T extends org.everit.json.schema.Schema> {
       return ConversionKey.of(ObjectSchema.class);
     }
 
+    @Override
+    protected FromJsonVisitor<ObjectNode, Struct> jsonVisitor(Schema connectSchema, Map<String, FromJsonVisitor> visitors) {
+      return new FromJsonVisitor.StructVisitor(connectSchema, visitors);
+    }
+
 
     @Override
-    protected void fromJSON(SchemaBuilder builder, ObjectSchema jsonSchema) {
+    protected void fromJSON(SchemaBuilder builder, ObjectSchema jsonSchema, Map<String, FromJsonVisitor> visitors) {
       Set<String> requiredProperties = ImmutableSet.copyOf(jsonSchema.getRequiredProperties());
       jsonSchema.getPropertySchemas()
           .entrySet()
@@ -136,13 +164,14 @@ public abstract class SchemaConverter<T extends org.everit.json.schema.Schema> {
             final org.everit.json.schema.Schema propertyJsonSchema = e.getValue();
             final boolean isOptional = !requiredProperties.contains(propertyName);
             log.trace("fromJson() - Processing property '{}' '{}'", propertyName, propertyJsonSchema);
-            Schema connectSchema = SchemaConverter.fromJSON(propertyJsonSchema, isOptional);
-            builder.field(propertyName, connectSchema);
+            FromJsonState state = FromJsonSchemaConverter.fromJSON(propertyJsonSchema, isOptional);
+            builder.field(propertyName, state.schema);
+            visitors.put(propertyName, state.visitor);
           });
     }
   }
 
-  static class IntegerSchemaConverter extends SchemaConverter<NumberSchema> {
+  static class IntegerSchemaConverter extends FromJsonSchemaConverter<NumberSchema, NumericNode, Number> {
 
     @Override
     protected SchemaBuilder schemaBuilder(NumberSchema schema) {
@@ -155,12 +184,22 @@ public abstract class SchemaConverter<T extends org.everit.json.schema.Schema> {
     }
 
     @Override
-    protected void fromJSON(SchemaBuilder builder, NumberSchema jsonSchema) {
+    protected FromJsonVisitor<NumericNode, Number> jsonVisitor(Schema connectSchema, Map<String, FromJsonVisitor> visitors) {
+      return new FromJsonVisitor.IntegerVisitor(connectSchema);
+    }
+
+    @Override
+    protected void fromJSON(SchemaBuilder builder, NumberSchema jsonSchema, Map<String, FromJsonVisitor> visitors) {
       log.trace("fromJson() - Processing '{}'", jsonSchema);
     }
   }
 
-  static class FloatSchemaConverter extends SchemaConverter<NumberSchema> {
+  static class FloatSchemaConverter extends FromJsonSchemaConverter<NumberSchema, NumericNode, Number> {
+
+    @Override
+    protected FromJsonVisitor<NumericNode, Number> jsonVisitor(Schema connectSchema, Map<String, FromJsonVisitor> visitors) {
+      return new FromJsonVisitor.FloatVisitor(connectSchema);
+    }
 
     @Override
     protected SchemaBuilder schemaBuilder(NumberSchema schema) {
@@ -173,12 +212,12 @@ public abstract class SchemaConverter<T extends org.everit.json.schema.Schema> {
     }
 
     @Override
-    protected void fromJSON(SchemaBuilder builder, NumberSchema jsonSchema) {
+    protected void fromJSON(SchemaBuilder builder, NumberSchema jsonSchema, Map<String, FromJsonVisitor> visitors) {
       log.trace("fromJson() - Processing '{}'", jsonSchema);
     }
   }
 
-  static class StringSchemaConverter extends SchemaConverter<StringSchema> {
+  static class StringSchemaConverter extends FromJsonSchemaConverter<StringSchema, TextNode, String> {
 
     @Override
     protected SchemaBuilder schemaBuilder(StringSchema schema) {
@@ -191,12 +230,22 @@ public abstract class SchemaConverter<T extends org.everit.json.schema.Schema> {
     }
 
     @Override
-    protected void fromJSON(SchemaBuilder builder, StringSchema jsonSchema) {
+    protected FromJsonVisitor<TextNode, String> jsonVisitor(Schema connectSchema, Map<String, FromJsonVisitor> visitors) {
+      return new FromJsonVisitor.StringVisitor(connectSchema);
+    }
+
+    @Override
+    protected void fromJSON(SchemaBuilder builder, StringSchema jsonSchema, Map<String, FromJsonVisitor> visitors) {
       log.trace("fromJson() - Processing '{}'", jsonSchema);
     }
   }
 
-  static class DateSchemaConverter extends SchemaConverter<StringSchema> {
+  static class DateSchemaConverter extends FromJsonSchemaConverter<StringSchema, TextNode, java.util.Date> {
+
+    @Override
+    protected FromJsonVisitor<TextNode, java.util.Date> jsonVisitor(Schema connectSchema, Map<String, FromJsonVisitor> visitors) {
+      return new FromJsonVisitor.DateVisitor(connectSchema);
+    }
 
     @Override
     protected SchemaBuilder schemaBuilder(StringSchema schema) {
@@ -209,12 +258,12 @@ public abstract class SchemaConverter<T extends org.everit.json.schema.Schema> {
     }
 
     @Override
-    protected void fromJSON(SchemaBuilder builder, StringSchema jsonSchema) {
+    protected void fromJSON(SchemaBuilder builder, StringSchema jsonSchema, Map<String, FromJsonVisitor> visitors) {
       log.trace("fromJson() - Processing '{}'", jsonSchema);
     }
   }
 
-  static class TimeSchemaConverter extends SchemaConverter<StringSchema> {
+  static class TimeSchemaConverter extends FromJsonSchemaConverter<StringSchema, TextNode, java.util.Date> {
 
     @Override
     protected SchemaBuilder schemaBuilder(StringSchema schema) {
@@ -227,12 +276,22 @@ public abstract class SchemaConverter<T extends org.everit.json.schema.Schema> {
     }
 
     @Override
-    protected void fromJSON(SchemaBuilder builder, StringSchema jsonSchema) {
+    protected FromJsonVisitor<TextNode, java.util.Date> jsonVisitor(Schema connectSchema, Map<String, FromJsonVisitor> visitors) {
+      return new FromJsonVisitor.TimeVisitor(connectSchema);
+    }
+
+    @Override
+    protected void fromJSON(SchemaBuilder builder, StringSchema jsonSchema, Map<String, FromJsonVisitor> visitors) {
       log.trace("fromJson() - Processing '{}'", jsonSchema);
     }
   }
 
-  static class DateTimeSchemaConverter extends SchemaConverter<StringSchema> {
+  static class DateTimeSchemaConverter extends FromJsonSchemaConverter<StringSchema, TextNode, java.util.Date> {
+
+    @Override
+    protected FromJsonVisitor<TextNode, java.util.Date> jsonVisitor(Schema connectSchema, Map<String, FromJsonVisitor> visitors) {
+      return new FromJsonVisitor.DateTimeVisitor(connectSchema);
+    }
 
     @Override
     protected SchemaBuilder schemaBuilder(StringSchema schema) {
@@ -245,17 +304,17 @@ public abstract class SchemaConverter<T extends org.everit.json.schema.Schema> {
     }
 
     @Override
-    protected void fromJSON(SchemaBuilder builder, StringSchema jsonSchema) {
+    protected void fromJSON(SchemaBuilder builder, StringSchema jsonSchema, Map<String, FromJsonVisitor> visitors) {
       log.trace("fromJson() - Processing '{}'", jsonSchema);
     }
   }
 
-  static class ArraySchemaConverter extends SchemaConverter<ArraySchema> {
+  static class ArraySchemaConverter extends FromJsonSchemaConverter<ArraySchema, ArrayNode, List> {
 
     @Override
     protected SchemaBuilder schemaBuilder(ArraySchema schema) {
-      Schema connectSchema = SchemaConverter.fromJSON(schema.getAllItemSchema());
-      return SchemaBuilder.array(connectSchema);
+      FromJsonState state = FromJsonSchemaConverter.fromJSON(schema.getAllItemSchema());
+      return SchemaBuilder.array(state.schema);
     }
 
     @Override
@@ -264,7 +323,12 @@ public abstract class SchemaConverter<T extends org.everit.json.schema.Schema> {
     }
 
     @Override
-    protected void fromJSON(SchemaBuilder builder, ArraySchema jsonSchema) {
+    protected FromJsonVisitor<ArrayNode, List> jsonVisitor(Schema connectSchema, Map<String, FromJsonVisitor> visitors) {
+      return new FromJsonVisitor.ArrayVisitor(connectSchema);
+    }
+
+    @Override
+    protected void fromJSON(SchemaBuilder builder, ArraySchema jsonSchema, Map<String, FromJsonVisitor> visitors) {
 
     }
   }
