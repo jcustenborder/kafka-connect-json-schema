@@ -21,12 +21,31 @@ import com.fasterxml.jackson.databind.node.BooleanNode;
 import com.fasterxml.jackson.databind.node.NumericNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
+import com.google.common.io.BaseEncoding;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.connect.errors.DataException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.TemporalAccessor;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.TimeZone;
 
 public abstract class FromJsonVisitor<T extends JsonNode, V> {
   protected final Schema schema;
@@ -99,7 +118,7 @@ public abstract class FromJsonVisitor<T extends JsonNode, V> {
 
     @Override
     protected Number doVisit(NumericNode node) {
-      return null;
+      return node.longValue();
     }
   }
 
@@ -110,52 +129,80 @@ public abstract class FromJsonVisitor<T extends JsonNode, V> {
 
     @Override
     protected Number doVisit(NumericNode node) {
-      return null;
-    }
-  }
-
-  public static class DateVisitor extends FromJsonVisitor<TextNode, java.util.Date> {
-    public DateVisitor(Schema schema) {
-      super(schema);
-    }
-
-    @Override
-    protected Date doVisit(TextNode node) {
-      return null;
-    }
-  }
-
-  public static class TimeVisitor extends FromJsonVisitor<TextNode, java.util.Date> {
-    public TimeVisitor(Schema schema) {
-      super(schema);
-    }
-
-    @Override
-    protected Date doVisit(TextNode node) {
-      return null;
+      return node.doubleValue();
     }
   }
 
   public static class DateTimeVisitor extends FromJsonVisitor<TextNode, java.util.Date> {
+    private static final Logger log = LoggerFactory.getLogger(DateTimeVisitor.class);
     public DateTimeVisitor(Schema schema) {
       super(schema);
     }
 
     @Override
     protected Date doVisit(TextNode node) {
-      return null;
+      log.trace(node.asText());
+      LocalDateTime localDateTime = LocalDateTime.parse(node.asText(), Utils.TIMESTAMP_FORMATTER);
+      Instant instant = localDateTime.toInstant(ZoneOffset.UTC);
+      return Date.from(instant);
     }
   }
-
-  public static class ArrayVisitor extends FromJsonVisitor<ArrayNode, List> {
-    public ArrayVisitor(Schema schema) {
+  public static class DateVisitor extends FromJsonVisitor<TextNode, java.util.Date> {
+    private static final Logger log = LoggerFactory.getLogger(DateTimeVisitor.class);
+    public DateVisitor(Schema schema) {
       super(schema);
     }
 
     @Override
-    protected List doVisit(ArrayNode node) {
-      return null;
+    protected Date doVisit(TextNode node) {
+      log.trace(node.asText());
+      LocalDate localDateTime = LocalDate.parse(node.asText(), Utils.DATE_FORMATTER);
+      Instant instant = localDateTime.atStartOfDay().toInstant(ZoneOffset.UTC);
+      return Date.from(instant);
+    }
+  }
+  public static class TimeVisitor extends FromJsonVisitor<TextNode, java.util.Date> {
+    private static final Logger log = LoggerFactory.getLogger(DateTimeVisitor.class);
+    public TimeVisitor(Schema schema) {
+      super(schema);
+    }
+
+    @Override
+    protected Date doVisit(TextNode node) {
+      log.trace(node.asText());
+      LocalTime localDateTime = LocalTime.parse(node.asText(), Utils.TIME_FORMATTER);
+      Instant instant = LocalDate.ofEpochDay(0).atTime(localDateTime).toInstant(ZoneOffset.UTC);
+      return Date.from(instant);
     }
   }
 
+  public static class ArrayVisitor extends FromJsonVisitor<ArrayNode, List> {
+    final FromJsonVisitor itemVisitor;
+
+    public ArrayVisitor(Schema schema, FromJsonVisitor itemVisitor) {
+      super(schema);
+      this.itemVisitor = itemVisitor;
+    }
+
+    @Override
+    protected List doVisit(ArrayNode node) {
+      List result = new ArrayList();
+      for (JsonNode jsonNode : node) {
+        Object value = itemVisitor.visit(jsonNode);
+        result.add(value);
+      }
+      return result;
+    }
+  }
+
+  public static class BytesVisitor extends FromJsonVisitor<TextNode, byte[]> {
+    public BytesVisitor(Schema schema) {
+      super(schema);
+    }
+
+    @Override
+    protected byte[] doVisit(TextNode node) {
+      return BaseEncoding.base64().decode(node.textValue());
+    }
+  }
 }

@@ -45,7 +45,7 @@ public class JsonSchemaConverter implements Converter {
   public void configure(Map<String, ?> settings, boolean isKey) {
     this.jsonSchemaHeader = isKey ? KEY_HEADER : VALUE_HEADER;
     this.encodingCharset = Charsets.UTF_8;
-    this.objectMapper = new ObjectMapper();
+    this.objectMapper = JacksonFactory.create();
 
   }
 
@@ -102,7 +102,7 @@ public class JsonSchemaConverter implements Converter {
         .hashBytes(schemaHeader.value())
         .toString();
     FromJsonState state = this.toConnectStateLookup.computeIfAbsent(hash, h -> {
-      org.everit.json.schema.Schema schema = HeaderUtils.loadSchema(schemaHeader);
+      org.everit.json.schema.Schema schema = Utils.loadSchema(schemaHeader);
       return FromJsonSchemaConverter.fromJSON(schema);
     });
 

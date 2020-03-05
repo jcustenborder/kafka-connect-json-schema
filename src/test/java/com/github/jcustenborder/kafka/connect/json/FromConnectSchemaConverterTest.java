@@ -49,7 +49,7 @@ public class FromConnectSchemaConverterTest {
         .build();
     FromConnectState state = FromConnectSchemaConverter.toJsonSchema(expected, "foo");
     assertNotNull(state, "rawJsonSchema should not be null.");
-    JSONObject rawJsonSchema = HeaderUtils.loadObject(state.header);
+    JSONObject rawJsonSchema = Utils.loadObject(state.header);
     log.trace("rawJsonSchema = {}", rawJsonSchema.toString(2));
     org.everit.json.schema.Schema jsonSchema = TestUtils.jsonSchema(rawJsonSchema);
     assertNotNull(jsonSchema);
@@ -74,7 +74,7 @@ public class FromConnectSchemaConverterTest {
 
     FromConnectState state = FromConnectSchemaConverter.toJsonSchema(expected, "foo");
     assertNotNull(state, "rawJsonSchema should not be null.");
-    JSONObject rawJsonSchema = HeaderUtils.loadObject(state.header);
+    JSONObject rawJsonSchema = Utils.loadObject(state.header);
     log.trace("rawJsonSchema = {}", rawJsonSchema.toString(2));
     org.everit.json.schema.Schema jsonSchema = TestUtils.jsonSchema(rawJsonSchema);
     assertNotNull(jsonSchema);
@@ -86,12 +86,12 @@ public class FromConnectSchemaConverterTest {
         .stream()
         .map(e -> dynamicTest(e.getKey().toString(), () -> {
           String description = String.format("This schema represents a %s", e.getKey());
-          Schema expected = SchemaBuilder.type(e.getKey())
+          Schema expected = SchemaBuilder.type(e.getKey().type)
               .doc(description)
               .build();
           FromConnectState state = FromConnectSchemaConverter.toJsonSchema(expected, "foo");
           assertNotNull(state, "rawJsonSchema should not be null.");
-          JSONObject rawJsonSchema = HeaderUtils.loadObject(state.header);
+          JSONObject rawJsonSchema = Utils.loadObject(state.header);
           assertNotNull(rawJsonSchema, "rawJsonSchema should not be null.");
           log.trace("rawJsonSchema = {}", rawJsonSchema.toString(2));
           e.getValue().forEach((propertyName, expectedValue) -> {

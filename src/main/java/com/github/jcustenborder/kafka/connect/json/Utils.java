@@ -27,8 +27,20 @@ import org.json.JSONTokener;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.TimeZone;
 
-public class HeaderUtils {
+public class Utils {
+
+  static final ZoneId ZONE_ID =  ZoneId.of("UTC");
+  public static final DateTimeFormatter TIMESTAMP_FORMATTER = DateTimeFormatter.ISO_INSTANT
+      .withZone(ZONE_ID);
+  public static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE
+      .withZone(ZONE_ID);
+  public static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ISO_LOCAL_TIME
+      .withZone(ZONE_ID);
+
 
   public static JSONObject loadObject(Header header) {
     try (InputStream inputStream = new ByteArrayInputStream(header.value())) {

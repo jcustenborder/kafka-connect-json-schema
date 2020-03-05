@@ -21,8 +21,11 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.internals.RecordHeader;
+import org.apache.kafka.connect.data.Date;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Schema.Type;
+import org.apache.kafka.connect.data.Time;
+import org.apache.kafka.connect.data.Timestamp;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,35 +37,42 @@ import java.util.Map;
 
 public class FromConnectSchemaConverter {
   private static final Logger log = LoggerFactory.getLogger(FromConnectSchemaConverter.class);
-  static final Map<Type, Map<String, String>> PRIMITIVE_TYPES;
+  static final Map<FromConnectConversionKey, Map<String, String>> PRIMITIVE_TYPES;
 
   static {
-    Map<Type, Map<String, String>> primitiveTypes = new LinkedHashMap<>();
-    primitiveTypes.put(Type.BOOLEAN, ImmutableMap.of("type", "boolean"));
-    primitiveTypes.put(Type.BYTES, ImmutableMap.of("type", "string", "contentEncoding", "base64"));
-    primitiveTypes.put(Type.FLOAT32, ImmutableMap.of("type", "number"));
-    primitiveTypes.put(Type.FLOAT64, ImmutableMap.of("type", "number"));
-    primitiveTypes.put(Type.INT8, ImmutableMap.of("type", "integer"));
-    primitiveTypes.put(Type.INT16, ImmutableMap.of("type", "integer"));
-    primitiveTypes.put(Type.INT32, ImmutableMap.of("type", "integer"));
-    primitiveTypes.put(Type.INT64, ImmutableMap.of("type", "integer"));
-    primitiveTypes.put(Type.STRING, ImmutableMap.of("type", "string"));
+    Map<FromConnectConversionKey, Map<String, String>> primitiveTypes = new LinkedHashMap<>();
+    primitiveTypes.put(FromConnectConversionKey.of(Type.BOOLEAN), ImmutableMap.of("type", "boolean"));
+    primitiveTypes.put(FromConnectConversionKey.of(Type.BYTES), ImmutableMap.of("type", "string", "contentEncoding", "base64"));
+    primitiveTypes.put(FromConnectConversionKey.of(Type.FLOAT32), ImmutableMap.of("type", "number"));
+    primitiveTypes.put(FromConnectConversionKey.of(Type.FLOAT64), ImmutableMap.of("type", "number"));
+    primitiveTypes.put(FromConnectConversionKey.of(Type.INT8), ImmutableMap.of("type", "integer"));
+    primitiveTypes.put(FromConnectConversionKey.of(Type.INT16), ImmutableMap.of("type", "integer"));
+    primitiveTypes.put(FromConnectConversionKey.of(Type.INT32), ImmutableMap.of("type", "integer"));
+    primitiveTypes.put(FromConnectConversionKey.of(Type.INT64), ImmutableMap.of("type", "integer"));
+    primitiveTypes.put(FromConnectConversionKey.of(Type.STRING), ImmutableMap.of("type", "string"));
+    primitiveTypes.put(FromConnectConversionKey.of(Date.SCHEMA), ImmutableMap.of("type", "string", "format", "date"));
+    primitiveTypes.put(FromConnectConversionKey.of(Time.SCHEMA), ImmutableMap.of("type", "string", "format", "time"));
+    primitiveTypes.put(FromConnectConversionKey.of(Timestamp.SCHEMA), ImmutableMap.of("type", "string", "format", "date-time"));
     PRIMITIVE_TYPES = ImmutableMap.copyOf(primitiveTypes);
   }
 
-  static final Map<Type, FromConnectVisitor> PRIMITIVE_VISITORS;
+  static final Map<FromConnectConversionKey, FromConnectVisitor> PRIMITIVE_VISITORS;
 
   static {
-    Map<Type, FromConnectVisitor> primitiveVisitors = new LinkedHashMap<>();
-    primitiveVisitors.put(Type.BOOLEAN, new FromConnectVisitor.BooleanVisitor());
-    primitiveVisitors.put(Type.BYTES, new FromConnectVisitor.BytesVisitor());
-    primitiveVisitors.put(Type.FLOAT32, new FromConnectVisitor.FloatVisitor());
-    primitiveVisitors.put(Type.FLOAT64, new FromConnectVisitor.FloatVisitor());
-    primitiveVisitors.put(Type.INT8, new FromConnectVisitor.IntegerVisitor());
-    primitiveVisitors.put(Type.INT16, new FromConnectVisitor.IntegerVisitor());
-    primitiveVisitors.put(Type.INT32, new FromConnectVisitor.IntegerVisitor());
-    primitiveVisitors.put(Type.INT64, new FromConnectVisitor.IntegerVisitor());
-    primitiveVisitors.put(Type.STRING, new FromConnectVisitor.StringVisitor());
+    Map<FromConnectConversionKey, FromConnectVisitor> primitiveVisitors = new LinkedHashMap<>();
+    primitiveVisitors.put(FromConnectConversionKey.of(Type.BOOLEAN), new FromConnectVisitor.BooleanVisitor());
+    primitiveVisitors.put(FromConnectConversionKey.of(Type.BYTES), new FromConnectVisitor.BytesVisitor());
+    primitiveVisitors.put(FromConnectConversionKey.of(Type.FLOAT32), new FromConnectVisitor.FloatVisitor());
+    primitiveVisitors.put(FromConnectConversionKey.of(Type.FLOAT64), new FromConnectVisitor.FloatVisitor());
+    primitiveVisitors.put(FromConnectConversionKey.of(Type.INT8), new FromConnectVisitor.IntegerVisitor());
+    primitiveVisitors.put(FromConnectConversionKey.of(Type.INT16), new FromConnectVisitor.IntegerVisitor());
+    primitiveVisitors.put(FromConnectConversionKey.of(Type.INT32), new FromConnectVisitor.IntegerVisitor());
+    primitiveVisitors.put(FromConnectConversionKey.of(Type.INT64), new FromConnectVisitor.IntegerVisitor());
+    primitiveVisitors.put(FromConnectConversionKey.of(Type.STRING), new FromConnectVisitor.StringVisitor());
+    primitiveVisitors.put(FromConnectConversionKey.of(Date.SCHEMA), new FromConnectVisitor.DateVisitor());
+    primitiveVisitors.put(FromConnectConversionKey.of(Time.SCHEMA), new FromConnectVisitor.TimeVisitor());
+    primitiveVisitors.put(FromConnectConversionKey.of(Timestamp.SCHEMA), new FromConnectVisitor.DateTimeVisitor());
+
     PRIMITIVE_VISITORS = ImmutableMap.copyOf(primitiveVisitors);
   }
 
@@ -136,21 +146,24 @@ public class FromConnectSchemaConverter {
     if (!Strings.isNullOrEmpty(schema.doc())) {
       result.put("description", schema.doc());
     }
-    if (!Strings.isNullOrEmpty(schema.name())) {
-      result.put("title", schema.name());
-    }
-    log.trace("toJsonSchema() - Checking for primitive '{}'", schema.type());
-    Map<String, String> primitiveType = PRIMITIVE_TYPES.get(schema.type());
+    FromConnectConversionKey key = FromConnectConversionKey.of(schema);
+    log.trace("toJsonSchema() - Checking for '{}'", key);
+    Map<String, String> primitiveType = PRIMITIVE_TYPES.get(key);
     if (null != primitiveType) {
       primitiveType.forEach(result::put);
-      FromConnectVisitor visitor = PRIMITIVE_VISITORS.get(schema.type());
+      FromConnectVisitor visitor = PRIMITIVE_VISITORS.get(key);
       visitors.add(visitor);
       return result;
     }
 
+    if (!Strings.isNullOrEmpty(schema.name())) {
+      result.put("title", schema.name());
+    }
+
+
     if (Type.ARRAY == schema.type()) {
       result.put("type", "array");
-
+      FromConnectVisitor elementVisitor;
       if (Type.STRUCT == schema.valueSchema().type()) {
         Definition definition = definitions.computeIfAbsent(schema.valueSchema(), s -> {
           List<FromConnectVisitor> childVisitors = new ArrayList<>();
@@ -159,10 +172,14 @@ public class FromConnectSchemaConverter {
           return Definition.of(fieldJsonSchema, definitionName, childVisitors);
         });
         result.put("items", definition.ref());
+        elementVisitor = definition.visitors().get(0);
       } else {
-        JSONObject arrayValueSchema = toJsonSchema(schema.valueSchema(), definitions, visitors);
+        List<FromConnectVisitor> childVisitors = new ArrayList<>();
+        JSONObject arrayValueSchema = toJsonSchema(schema.valueSchema(), definitions, childVisitors);
+        elementVisitor = childVisitors.get(0);
         result.put("items", arrayValueSchema);
       }
+      visitors.add(new FromConnectVisitor.ArrayVisitor(elementVisitor));
     }
     if (Type.STRUCT == schema.type()) {
       List<String> requiredFields = new ArrayList<>(schema.fields().size());

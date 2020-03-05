@@ -16,9 +16,12 @@
 package com.github.jcustenborder.kafka.connect.json;
 
 import com.fasterxml.jackson.core.JsonGenerator;
+import com.google.common.io.BaseEncoding;
 import org.apache.kafka.connect.data.Struct;
 
 import java.io.IOException;
+import java.util.Date;
+import java.util.List;
 import java.util.Map;
 
 public abstract class FromConnectVisitor<T> {
@@ -55,30 +58,83 @@ public abstract class FromConnectVisitor<T> {
   public static class BooleanVisitor extends FromConnectVisitor<Boolean> {
     @Override
     public void doVisit(JsonGenerator jsonGenerator, Boolean value) throws IOException {
-
+      jsonGenerator.writeBoolean(value);
     }
   }
 
-  public static class BytesVisitor extends FromConnectVisitor {
+  public static class BytesVisitor extends FromConnectVisitor<byte[]> {
     @Override
-    public void doVisit(JsonGenerator jsonGenerator, Object value) throws IOException {
-
+    public void doVisit(JsonGenerator jsonGenerator, byte[] value) throws IOException {
+      jsonGenerator.writeString(
+          BaseEncoding.base64().encode(value)
+      );
     }
   }
 
-  public static class FloatVisitor extends FromConnectVisitor {
-    @Override
-    public void doVisit(JsonGenerator jsonGenerator, Object value) throws IOException {
-
-    }
-  }
-
-  public static class IntegerVisitor extends FromConnectVisitor {
+  public static class FloatVisitor extends FromConnectVisitor<Number> {
 
     @Override
-    public void doVisit(JsonGenerator jsonGenerator, Object value) throws IOException {
-
+    public void doVisit(JsonGenerator jsonGenerator, Number value) throws IOException {
+      jsonGenerator.writeNumber(value.doubleValue());
     }
   }
 
+  public static class DateTimeVisitor extends FromConnectVisitor<Date> {
+    @Override
+    public void doVisit(JsonGenerator jsonGenerator, Date value) throws IOException {
+      jsonGenerator.writeString(
+          Utils.TIMESTAMP_FORMATTER.format(
+              value.toInstant()
+          )
+      );
+    }
+  }
+
+  public static class DateVisitor extends FromConnectVisitor<Date> {
+    @Override
+    public void doVisit(JsonGenerator jsonGenerator, Date value) throws IOException {
+      jsonGenerator.writeString(
+          Utils.DATE_FORMATTER.format(
+              value.toInstant()
+          )
+      );
+    }
+  }
+
+  public static class TimeVisitor extends FromConnectVisitor<Date> {
+    @Override
+    public void doVisit(JsonGenerator jsonGenerator, Date value) throws IOException {
+      jsonGenerator.writeString(
+          Utils.TIME_FORMATTER.format(
+              value.toInstant()
+          )
+      );
+    }
+  }
+
+  public static class IntegerVisitor extends FromConnectVisitor<Number> {
+
+
+    @Override
+    public void doVisit(JsonGenerator jsonGenerator, Number value) throws IOException {
+      jsonGenerator.writeNumber(value.longValue());
+    }
+  }
+
+  public static class ArrayVisitor extends FromConnectVisitor<List> {
+    final FromConnectVisitor elementVisitor;
+
+    public ArrayVisitor(FromConnectVisitor elementVisitor) {
+      this.elementVisitor = elementVisitor;
+    }
+
+    @Override
+    public void doVisit(JsonGenerator jsonGenerator, List value) throws IOException {
+      jsonGenerator.writeStartArray();
+      for (Object o : value) {
+        this.elementVisitor.doVisit(jsonGenerator, o);
+      }
+      jsonGenerator.writeEndArray();
+    }
+  }
 }
