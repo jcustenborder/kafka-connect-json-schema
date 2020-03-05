@@ -15,6 +15,7 @@
  */
 package com.github.jcustenborder.kafka.connect.json;
 
+import com.google.common.base.Strings;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.json.JSONObject;
@@ -84,6 +85,7 @@ public class FromConnectSchemaConverterTest {
   public Stream<DynamicTest> primitives() {
     return FromConnectSchemaConverter.PRIMITIVE_TYPES.entrySet()
         .stream()
+        .filter(e-> Strings.isNullOrEmpty(e.getKey().schemaName))
         .map(e -> dynamicTest(e.getKey().toString(), () -> {
           String description = String.format("This schema represents a %s", e.getKey());
           Schema expected = SchemaBuilder.type(e.getKey().type)
