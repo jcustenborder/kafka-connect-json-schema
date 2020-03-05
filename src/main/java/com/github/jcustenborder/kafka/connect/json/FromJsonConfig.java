@@ -15,17 +15,34 @@
  */
 package com.github.jcustenborder.kafka.connect.json;
 
+import com.github.jcustenborder.kafka.connect.utils.config.ConfigKeyBuilder;
+import com.github.jcustenborder.kafka.connect.utils.config.ConfigUtils;
+import com.github.jcustenborder.kafka.connect.utils.config.validators.Validators;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
 
+import java.net.URL;
 import java.util.Map;
 
-public class FromJsonConfig extends AbstractConfig {
+class FromJsonConfig extends AbstractConfig {
+  public static final String SCHEMA_LOCATION_CONF = "json.schema.location";
+  static final String SCHEMA_LOCATION_DOC = "json.schema.location";
+
+  public final URL schemaLocation;
+
   public FromJsonConfig(Map<?, ?> originals) {
     super(config(), originals);
+    this.schemaLocation = ConfigUtils.url(this, SCHEMA_LOCATION_CONF);
   }
 
   public static ConfigDef config() {
-    return new ConfigDef();
+    return new ConfigDef()
+        .define(
+            ConfigKeyBuilder.of(SCHEMA_LOCATION_CONF, ConfigDef.Type.STRING)
+                .documentation(SCHEMA_LOCATION_DOC)
+                .validator(Validators.validUrl())
+                .importance(ConfigDef.Importance.HIGH)
+                .build()
+        );
   }
 }

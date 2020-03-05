@@ -17,6 +17,7 @@ package com.github.jcustenborder.kafka.connect.json;
 
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.connect.errors.DataException;
+import org.everit.json.schema.Schema;
 import org.everit.json.schema.internal.DateFormatValidator;
 import org.everit.json.schema.internal.DateTimeFormatValidator;
 import org.everit.json.schema.internal.TimeFormatValidator;
@@ -43,14 +44,22 @@ public class Utils {
 
   public static JSONObject loadObject(Header header) {
     try (InputStream inputStream = new ByteArrayInputStream(header.value())) {
-      return new JSONObject(new JSONTokener(inputStream));
+      return loadObject(inputStream);
     } catch (IOException ex) {
       throw new DataException("Could not load schema", ex);
     }
   }
 
-  public static org.everit.json.schema.Schema loadSchema(Header header) {
-    JSONObject rawSchema = loadObject(header);
+  public static JSONObject loadObject(InputStream inputStream) {
+    return new JSONObject(new JSONTokener(inputStream));
+  }
+
+  public static Schema loadSchema(InputStream inputStream) {
+    JSONObject rawSchema = loadObject(inputStream);
+    return loadSchema(rawSchema);
+  }
+
+  public static org.everit.json.schema.Schema loadSchema(JSONObject rawSchema) {
     return SchemaLoader.builder()
         .draftV7Support()
         .addFormatValidator(new DateFormatValidator())
@@ -61,4 +70,11 @@ public class Utils {
         .load()
         .build();
   }
+
+  public static org.everit.json.schema.Schema loadSchema(Header header) {
+    JSONObject rawSchema = loadObject(header);
+    return loadSchema(rawSchema);
+  }
+
+
 }

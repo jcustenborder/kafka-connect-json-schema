@@ -15,14 +15,25 @@
  */
 package com.github.jcustenborder.kafka.connect.json;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.jcustenborder.kafka.connect.utils.config.Description;
+import com.github.jcustenborder.kafka.connect.utils.config.Title;
 import com.github.jcustenborder.kafka.connect.utils.transformation.BaseKeyValueTransformation;
 import org.apache.kafka.common.config.ConfigDef;
+import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.connect.connector.ConnectRecord;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaAndValue;
+import org.apache.kafka.connect.errors.DataException;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Map;
 
+@Title("From Json transformation")
+@Description("The FromJson will read JSON data that is in string on byte form and parse the data to " +
+    "a connect structure based on the JSON schema provided.")
 public class FromJson<R extends ConnectRecord<R>> extends BaseKeyValueTransformation<R> {
   FromJsonConfig config;
 
@@ -40,28 +51,60 @@ public class FromJson<R extends ConnectRecord<R>> extends BaseKeyValueTransforma
 
   }
 
+  SchemaAndValue processJsonNode(R record, Schema inputSchema, JsonNode node) {
+    Object result = this.fromJsonState.visitor.visit(node);
+    return new SchemaAndValue(this.fromJsonState.schema, result);
+  }
+
   @Override
   protected SchemaAndValue processBytes(R record, Schema inputSchema, byte[] input) {
-    return super.processBytes(record, inputSchema, input);
+    try {
+      JsonNode node = this.objectMapper.readValue(input, JsonNode.class);
+      return processJsonNode(record, inputSchema, node);
+    } catch (IOException e) {
+      throw new DataException(e);
+    }
   }
 
   @Override
   protected SchemaAndValue processString(R record, Schema inputSchema, String input) {
-    return super.processString(record, inputSchema, input);
+    try {
+      JsonNode node = this.objectMapper.readValue(input, JsonNode.class);
+      return processJsonNode(record, inputSchema, node);
+    } catch (IOException e) {
+      throw new DataException(e);
+    }
   }
+
+  FromJsonState fromJsonState;
+  ObjectMapper objectMapper;
 
   @Override
   public void configure(Map<String, ?> map) {
     this.config = new FromJsonConfig(map);
+
+    org.everit.json.schema.Schema schema;
+    try {
+      try (InputStream inputStream = this.config.schemaLocation.openStream()) {
+        schema = Utils.loadSchema(inputStream);
+      }
+    } catch (IOException e) {
+      ConfigException exception = new ConfigException(FromJsonConfig.SCHEMA_LOCATION_CONF, this.config.schemaLocation, "exception while loading schema");
+      exception.initCause(e);
+      throw exception;
+    }
+
+    this.fromJsonState = FromJsonSchemaConverter.fromJSON(schema);
+    this.objectMapper = JacksonFactory.create();
   }
 
-  public static class Key extends FromJson {
+  public static class Key<R extends ConnectRecord<R>> extends FromJson<R> {
     public Key() {
       super(true);
     }
   }
 
-  public static class Value extends FromJson {
+  public static class Value<R extends ConnectRecord<R>> extends FromJson<R> {
     public Value() {
       super(false);
     }
