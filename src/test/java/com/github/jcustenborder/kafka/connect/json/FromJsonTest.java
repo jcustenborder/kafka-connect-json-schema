@@ -30,7 +30,7 @@ public class FromJsonTest {
     ));
     File schemaFile = new File("src/test/resources/com/github/jcustenborder/kafka/connect/json/basic.schema.json");
     Map<String, String> settings = ImmutableMap.of(
-        FromJsonConfig.SCHEMA_LOCATION_CONF, schemaFile.toURI().toString()
+        FromJsonConfig.SCHEMA_URL_CONF, schemaFile.toURI().toString()
     );
     this.transform.configure(settings);
     SinkRecord inputRecord = SinkRecordHelper.write("foo", new SchemaAndValue(Schema.STRING_SCHEMA, "foo"), new SchemaAndValue(Schema.BYTES_SCHEMA, input));

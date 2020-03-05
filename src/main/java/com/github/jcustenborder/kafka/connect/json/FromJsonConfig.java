@@ -17,6 +17,7 @@ package com.github.jcustenborder.kafka.connect.json;
 
 import com.github.jcustenborder.kafka.connect.utils.config.ConfigKeyBuilder;
 import com.github.jcustenborder.kafka.connect.utils.config.ConfigUtils;
+import com.github.jcustenborder.kafka.connect.utils.config.recommenders.Recommenders;
 import com.github.jcustenborder.kafka.connect.utils.config.validators.Validators;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
@@ -25,23 +26,50 @@ import java.net.URL;
 import java.util.Map;
 
 class FromJsonConfig extends AbstractConfig {
+  public static final String SCHEMA_URL_CONF = "json.schema.url";
+  static final String SCHEMA_URL_DOC = "Url to retrieve the schema from.";
   public static final String SCHEMA_LOCATION_CONF = "json.schema.location";
-  static final String SCHEMA_LOCATION_DOC = "json.schema.location";
+  static final String SCHEMA_LOCATION_DOC = "Location to retrieve the schema from.";
+  public static final String SCHEMA_INLINE_CONF = "json.schema.inline";
+  static final String SCHEMA_INLINE_DOC = "The JSON schema to use as an escaped string.";
 
-  public final URL schemaLocation;
+
+  public enum SchemaLocation {
+    Url,
+    Inline
+  }
+
+  public final URL schemaUrl;
+  public final SchemaLocation schemaLocation;
+
 
   public FromJsonConfig(Map<?, ?> originals) {
     super(config(), originals);
-    this.schemaLocation = ConfigUtils.url(this, SCHEMA_LOCATION_CONF);
+    this.schemaUrl = ConfigUtils.url(this, SCHEMA_URL_CONF);
+    this.schemaLocation = ConfigUtils.getEnum(SchemaLocation.class, this, SCHEMA_LOCATION_CONF);
   }
 
   public static ConfigDef config() {
     return new ConfigDef()
         .define(
-            ConfigKeyBuilder.of(SCHEMA_LOCATION_CONF, ConfigDef.Type.STRING)
-                .documentation(SCHEMA_LOCATION_DOC)
+            ConfigKeyBuilder.of(SCHEMA_URL_CONF, ConfigDef.Type.STRING)
+                .documentation(SCHEMA_URL_DOC)
                 .validator(Validators.validUrl())
                 .importance(ConfigDef.Importance.HIGH)
+                .build()
+        ).define(
+            ConfigKeyBuilder.of(SCHEMA_LOCATION_CONF, ConfigDef.Type.STRING)
+                .documentation(SCHEMA_LOCATION_DOC)
+                .validator(Validators.validEnum(SchemaLocation.class))
+                .recommender(Recommenders.enumValues(SchemaLocation.class))
+                .importance(ConfigDef.Importance.HIGH)
+                .defaultValue(SchemaLocation.Url.toString())
+                .build()
+        ).define(
+            ConfigKeyBuilder.of(SCHEMA_INLINE_CONF, ConfigDef.Type.STRING)
+                .documentation(SCHEMA_INLINE_DOC)
+                .importance(ConfigDef.Importance.HIGH)
+                .defaultValue("")
                 .build()
         );
   }

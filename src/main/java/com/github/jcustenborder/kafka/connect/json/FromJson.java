@@ -85,11 +85,11 @@ public class FromJson<R extends ConnectRecord<R>> extends BaseKeyValueTransforma
 
     org.everit.json.schema.Schema schema;
     try {
-      try (InputStream inputStream = this.config.schemaLocation.openStream()) {
+      try (InputStream inputStream = this.config.schemaUrl.openStream()) {
         schema = Utils.loadSchema(inputStream);
       }
     } catch (IOException e) {
-      ConfigException exception = new ConfigException(FromJsonConfig.SCHEMA_LOCATION_CONF, this.config.schemaLocation, "exception while loading schema");
+      ConfigException exception = new ConfigException(FromJsonConfig.SCHEMA_URL_CONF, this.config.schemaUrl, "exception while loading schema");
       exception.initCause(e);
       throw exception;
     }
