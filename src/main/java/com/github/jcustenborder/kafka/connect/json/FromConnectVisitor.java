@@ -20,6 +20,8 @@ import com.google.common.io.BaseEncoding;
 import org.apache.kafka.connect.data.Struct;
 
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.text.DecimalFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -135,6 +137,22 @@ public abstract class FromConnectVisitor<T> {
         this.elementVisitor.doVisit(jsonGenerator, o);
       }
       jsonGenerator.writeEndArray();
+    }
+  }
+
+  public static class DecimalVisitor extends FromConnectVisitor<BigDecimal> {
+    DecimalFormat decimalFormat;
+
+    public DecimalVisitor(int scale) {
+      this.decimalFormat = new DecimalFormat("#");
+      this.decimalFormat.setMaximumFractionDigits(scale);
+    }
+
+    @Override
+    public void doVisit(JsonGenerator jsonGenerator, BigDecimal value) throws IOException {
+      jsonGenerator.writeString(
+          this.decimalFormat.format(value)
+      );
     }
   }
 }

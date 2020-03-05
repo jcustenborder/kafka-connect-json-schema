@@ -24,9 +24,12 @@ import com.fasterxml.jackson.databind.node.TextNode;
 import com.google.common.io.BaseEncoding;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.connect.errors.DataException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.text.DecimalFormat;
+import java.text.ParseException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -168,6 +171,28 @@ public abstract class FromJsonVisitor<T extends JsonNode, V> {
       LocalTime localDateTime = LocalTime.parse(node.asText(), Utils.TIME_FORMATTER);
       Instant instant = LocalDate.ofEpochDay(0).atTime(localDateTime).toInstant(ZoneOffset.UTC);
       return Date.from(instant);
+    }
+  }
+
+  public static class DecimalVisitor extends FromJsonVisitor<TextNode, Number> {
+    final int scale;
+    final DecimalFormat decimalFormat;
+
+    protected DecimalVisitor(Schema schema, int scale) {
+      super(schema);
+      this.scale = scale;
+      this.decimalFormat = new DecimalFormat("#");
+      this.decimalFormat.setParseBigDecimal(true);
+      this.decimalFormat.setMinimumFractionDigits(scale);
+    }
+
+    @Override
+    protected Number doVisit(TextNode node) {
+      try {
+        return this.decimalFormat.parse(node.asText());
+      } catch (ParseException e) {
+        throw new DataException(e);
+      }
     }
   }
 

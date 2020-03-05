@@ -21,6 +21,7 @@ import com.google.common.collect.ImmutableMap;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.header.internals.RecordHeaders;
+import org.apache.kafka.connect.data.Decimal;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -33,12 +34,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneOffset;
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static com.github.jcustenborder.kafka.connect.utils.AssertSchema.assertSchema;
@@ -155,9 +158,12 @@ public class JsonSchemaConverterTest {
         new SchemaAndValue(org.apache.kafka.connect.data.Timestamp.SCHEMA, timestamp)
     );
 
-    //TODO: Big decimal
-
-
+    IntStream.range(0, 30)
+        .forEach(scale -> {
+          BigDecimal input = BigDecimal.valueOf(Long.MAX_VALUE, scale);
+          SchemaAndValue schemaAndValue = new SchemaAndValue(Decimal.schema(scale), input);
+          tests.put(schemaAndValue, schemaAndValue);
+        });
     return tests.entrySet().stream()
         .map(p -> dynamicTest(p.getKey().schema().toString(), () -> {
           assertRoundTrip(p.getKey(), p.getValue());
@@ -181,19 +187,21 @@ public class JsonSchemaConverterTest {
     assertNotNull(actual, "actual should not be null.");
     assertSchema(expected.schema(), actual.schema());
 
-    switch (expected.schema().type()) {
-      case BYTES:
-        assertArrayEquals((byte[]) expected.value(), (byte[]) actual.value());
-        break;
-      case STRUCT:
-        assertStruct((Struct) expected.value(), (Struct) actual.value());
-        break;
-      default:
-        assertEquals(expected.value(), actual.value());
-        break;
+    if (Decimal.LOGICAL_NAME.equals(expected.schema().name())) {
+      assertEquals(expected.value(), actual.value());
+    } else {
+      switch (expected.schema().type()) {
+        case BYTES:
+          assertArrayEquals((byte[]) expected.value(), (byte[]) actual.value());
+          break;
+        case STRUCT:
+          assertStruct((Struct) expected.value(), (Struct) actual.value());
+          break;
+        default:
+          assertEquals(expected.value(), actual.value());
+          break;
+      }
     }
-
-
   }
 
   @Test

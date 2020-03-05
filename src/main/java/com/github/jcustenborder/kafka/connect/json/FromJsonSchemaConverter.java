@@ -24,6 +24,7 @@ import com.fasterxml.jackson.databind.node.TextNode;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableSet;
 import org.apache.kafka.connect.data.Date;
+import org.apache.kafka.connect.data.Decimal;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
@@ -63,7 +64,8 @@ public abstract class FromJsonSchemaConverter<T extends org.everit.json.schema.S
         new DateTimeSchemaConverter(),
         new FloatSchemaConverter(),
         new ArraySchemaConverter(),
-        new BytesSchemaConverter()
+        new BytesSchemaConverter(),
+        new DecimalSchemaConverter()
     ).collect(Collectors.toMap(FromJsonSchemaConverter::key, c -> c));
   }
 
@@ -335,6 +337,36 @@ public abstract class FromJsonSchemaConverter<T extends org.everit.json.schema.S
     @Override
     protected FromJsonVisitor<TextNode, byte[]> jsonVisitor(Schema connectSchema, Map<String, FromJsonVisitor> visitors) {
       return new FromJsonVisitor.BytesVisitor(connectSchema);
+    }
+
+    @Override
+    protected void fromJSON(SchemaBuilder builder, StringSchema jsonSchema, Map<String, FromJsonVisitor> visitors) {
+
+    }
+  }
+
+  static class DecimalSchemaConverter extends FromJsonSchemaConverter<StringSchema, TextNode, Number> {
+    public DecimalSchemaConverter() {
+
+    }
+
+    @Override
+    protected SchemaBuilder schemaBuilder(StringSchema schema) {
+      int scale = Utils.scale(schema);
+      return Decimal.builder(scale);
+    }
+
+    @Override
+    protected FromJsonConversionKey key() {
+      return FromJsonConversionKey.from(StringSchema.class)
+          .format("decimal")
+          .build();
+    }
+
+    @Override
+    protected FromJsonVisitor<TextNode, Number> jsonVisitor(Schema connectSchema, Map<String, FromJsonVisitor> visitors) {
+      int scale = Utils.scale(connectSchema);
+      return new FromJsonVisitor.DecimalVisitor(connectSchema, scale);
     }
 
     @Override

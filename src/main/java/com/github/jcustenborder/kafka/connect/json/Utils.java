@@ -16,8 +16,10 @@
 package com.github.jcustenborder.kafka.connect.json;
 
 import org.apache.kafka.common.header.Header;
+import org.apache.kafka.connect.data.Decimal;
 import org.apache.kafka.connect.errors.DataException;
 import org.everit.json.schema.Schema;
+import org.everit.json.schema.StringSchema;
 import org.everit.json.schema.internal.DateFormatValidator;
 import org.everit.json.schema.internal.DateTimeFormatValidator;
 import org.everit.json.schema.internal.TimeFormatValidator;
@@ -65,6 +67,7 @@ public class Utils {
         .addFormatValidator(new DateFormatValidator())
         .addFormatValidator(new TimeFormatValidator())
         .addFormatValidator(new DateTimeFormatValidator())
+        .addFormatValidator(new DecimalFormatValidator())
         .schemaJson(rawSchema)
         .build()
         .load()
@@ -77,4 +80,17 @@ public class Utils {
   }
 
 
+  public static int scale(StringSchema schema) {
+    String scale = schema.getUnprocessedProperties().get("scale").toString();
+    return scale(scale);
+  }
+
+  private static int scale(String scale) {
+    return Integer.parseInt(scale);
+  }
+
+  public static int scale(org.apache.kafka.connect.data.Schema connectSchema) {
+    String scale = connectSchema.parameters().get(Decimal.SCALE_FIELD);
+    return scale(scale);
+  }
 }

@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableMap;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.internals.RecordHeader;
 import org.apache.kafka.connect.data.Date;
+import org.apache.kafka.connect.data.Decimal;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Schema.Type;
 import org.apache.kafka.connect.data.Time;
@@ -34,45 +35,89 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 public class FromConnectSchemaConverter {
   static final Map<FromConnectConversionKey, Map<String, String>> PRIMITIVE_TYPES;
   static final Map<FromConnectConversionKey, FromConnectVisitor> PRIMITIVE_VISITORS;
   private static final Logger log = LoggerFactory.getLogger(FromConnectSchemaConverter.class);
 
-  static {
-    Map<FromConnectConversionKey, Map<String, String>> primitiveTypes = new LinkedHashMap<>();
-    primitiveTypes.put(FromConnectConversionKey.of(Type.BOOLEAN), ImmutableMap.of("type", "boolean"));
-    primitiveTypes.put(FromConnectConversionKey.of(Type.BYTES), ImmutableMap.of("type", "string", "contentEncoding", "base64"));
-    primitiveTypes.put(FromConnectConversionKey.of(Type.FLOAT32), ImmutableMap.of("type", "number"));
-    primitiveTypes.put(FromConnectConversionKey.of(Type.FLOAT64), ImmutableMap.of("type", "number"));
-    primitiveTypes.put(FromConnectConversionKey.of(Type.INT8), ImmutableMap.of("type", "integer"));
-    primitiveTypes.put(FromConnectConversionKey.of(Type.INT16), ImmutableMap.of("type", "integer"));
-    primitiveTypes.put(FromConnectConversionKey.of(Type.INT32), ImmutableMap.of("type", "integer"));
-    primitiveTypes.put(FromConnectConversionKey.of(Type.INT64), ImmutableMap.of("type", "integer"));
-    primitiveTypes.put(FromConnectConversionKey.of(Type.STRING), ImmutableMap.of("type", "string"));
-    primitiveTypes.put(FromConnectConversionKey.of(Date.SCHEMA), ImmutableMap.of("type", "string", "format", "date"));
-    primitiveTypes.put(FromConnectConversionKey.of(Time.SCHEMA), ImmutableMap.of("type", "string", "format", "time"));
-    primitiveTypes.put(FromConnectConversionKey.of(Timestamp.SCHEMA), ImmutableMap.of("type", "string", "format", "date-time"));
-    PRIMITIVE_TYPES = ImmutableMap.copyOf(primitiveTypes);
+  private static void addType(
+      Map<FromConnectConversionKey, FromConnectVisitor> primitiveVisitors,
+      Map<FromConnectConversionKey, Map<String, String>> primitiveTypes,
+      FromConnectConversionKey key,
+      FromConnectVisitor visitor,
+      ImmutableMap<String, String> properties) {
+
+    primitiveTypes.put(key, properties);
+    primitiveVisitors.put(key, visitor);
   }
 
   static {
-    Map<FromConnectConversionKey, FromConnectVisitor> primitiveVisitors = new LinkedHashMap<>();
-    primitiveVisitors.put(FromConnectConversionKey.of(Type.BOOLEAN), new FromConnectVisitor.BooleanVisitor());
-    primitiveVisitors.put(FromConnectConversionKey.of(Type.BYTES), new FromConnectVisitor.BytesVisitor());
-    primitiveVisitors.put(FromConnectConversionKey.of(Type.FLOAT32), new FromConnectVisitor.FloatVisitor());
-    primitiveVisitors.put(FromConnectConversionKey.of(Type.FLOAT64), new FromConnectVisitor.FloatVisitor());
-    primitiveVisitors.put(FromConnectConversionKey.of(Type.INT8), new FromConnectVisitor.IntegerVisitor());
-    primitiveVisitors.put(FromConnectConversionKey.of(Type.INT16), new FromConnectVisitor.IntegerVisitor());
-    primitiveVisitors.put(FromConnectConversionKey.of(Type.INT32), new FromConnectVisitor.IntegerVisitor());
-    primitiveVisitors.put(FromConnectConversionKey.of(Type.INT64), new FromConnectVisitor.IntegerVisitor());
-    primitiveVisitors.put(FromConnectConversionKey.of(Type.STRING), new FromConnectVisitor.StringVisitor());
-    primitiveVisitors.put(FromConnectConversionKey.of(Date.SCHEMA), new FromConnectVisitor.DateVisitor());
-    primitiveVisitors.put(FromConnectConversionKey.of(Time.SCHEMA), new FromConnectVisitor.TimeVisitor());
-    primitiveVisitors.put(FromConnectConversionKey.of(Timestamp.SCHEMA), new FromConnectVisitor.DateTimeVisitor());
+    Map<FromConnectConversionKey, FromConnectVisitor> visitors = new LinkedHashMap<>();
+    Map<FromConnectConversionKey, Map<String, String>> types = new LinkedHashMap<>();
+    addType(
+        visitors, types,
+        FromConnectConversionKey.of(Type.BOOLEAN),
+        new FromConnectVisitor.BooleanVisitor(),
+        ImmutableMap.of("type", "boolean")
+    );
+    addType(
+        visitors, types,
+        FromConnectConversionKey.of(Type.BYTES),
+        new FromConnectVisitor.BytesVisitor(),
+        ImmutableMap.of("type", "string", "contentEncoding", "base64")
+    );
+    addType(
+        visitors, types,
+        FromConnectConversionKey.of(Type.FLOAT32),
+        new FromConnectVisitor.FloatVisitor(),
+        ImmutableMap.of("type", "number")
+    );
+    addType(
+        visitors, types,
+        FromConnectConversionKey.of(Type.FLOAT64),
+        new FromConnectVisitor.FloatVisitor(),
+        ImmutableMap.of("type", "number")
+    );
+    Stream.of(Type.INT8, Type.INT16, Type.INT32, Type.INT64)
+        .forEach(type -> {
+          addType(
+              visitors, types,
+              FromConnectConversionKey.of(type),
+              new FromConnectVisitor.IntegerVisitor(),
+              ImmutableMap.of("type", "integer")
+          );
+        });
+    IntStream.range(0, 100)
+        .forEach(scale -> {
+          Schema decimalSchema = Decimal.schema(scale);
+          addType(
+              visitors, types,
+              FromConnectConversionKey.of(decimalSchema),
+              new FromConnectVisitor.DecimalVisitor(scale),
+              ImmutableMap.of(
+                  "type", "string",
+                  "format", "decimal",
+                  "scale", Integer.toString(scale)
+              )
+          );
+        });
 
-    PRIMITIVE_VISITORS = ImmutableMap.copyOf(primitiveVisitors);
+    visitors.put(FromConnectConversionKey.of(Type.STRING), new FromConnectVisitor.StringVisitor());
+    types.put(FromConnectConversionKey.of(Type.STRING), ImmutableMap.of("type", "string"));
+
+    visitors.put(FromConnectConversionKey.of(Date.SCHEMA), new FromConnectVisitor.DateVisitor());
+    types.put(FromConnectConversionKey.of(Date.SCHEMA), ImmutableMap.of("type", "string", "format", "date"));
+
+    visitors.put(FromConnectConversionKey.of(Time.SCHEMA), new FromConnectVisitor.TimeVisitor());
+    types.put(FromConnectConversionKey.of(Time.SCHEMA), ImmutableMap.of("type", "string", "format", "time"));
+
+    visitors.put(FromConnectConversionKey.of(Timestamp.SCHEMA), new FromConnectVisitor.DateTimeVisitor());
+    types.put(FromConnectConversionKey.of(Timestamp.SCHEMA), ImmutableMap.of("type", "string", "format", "date-time"));
+    PRIMITIVE_TYPES = ImmutableMap.copyOf(types);
+    PRIMITIVE_VISITORS = ImmutableMap.copyOf(visitors);
   }
 
   public static FromConnectState toJsonSchema(org.apache.kafka.connect.data.Schema schema, String headerName) {
