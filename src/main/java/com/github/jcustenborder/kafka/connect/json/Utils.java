@@ -29,11 +29,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.TimeZone;
 
 public class Utils {
 
-  static final ZoneId ZONE_ID =  ZoneId.of("UTC");
+  static final ZoneId ZONE_ID = ZoneId.of("UTC");
   public static final DateTimeFormatter TIMESTAMP_FORMATTER = DateTimeFormatter.ISO_INSTANT
       .withZone(ZONE_ID);
   public static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE

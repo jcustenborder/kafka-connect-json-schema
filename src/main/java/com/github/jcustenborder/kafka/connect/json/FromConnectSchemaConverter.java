@@ -36,8 +36,9 @@ import java.util.List;
 import java.util.Map;
 
 public class FromConnectSchemaConverter {
-  private static final Logger log = LoggerFactory.getLogger(FromConnectSchemaConverter.class);
   static final Map<FromConnectConversionKey, Map<String, String>> PRIMITIVE_TYPES;
+  static final Map<FromConnectConversionKey, FromConnectVisitor> PRIMITIVE_VISITORS;
+  private static final Logger log = LoggerFactory.getLogger(FromConnectSchemaConverter.class);
 
   static {
     Map<FromConnectConversionKey, Map<String, String>> primitiveTypes = new LinkedHashMap<>();
@@ -56,8 +57,6 @@ public class FromConnectSchemaConverter {
     PRIMITIVE_TYPES = ImmutableMap.copyOf(primitiveTypes);
   }
 
-  static final Map<FromConnectConversionKey, FromConnectVisitor> PRIMITIVE_VISITORS;
-
   static {
     Map<FromConnectConversionKey, FromConnectVisitor> primitiveVisitors = new LinkedHashMap<>();
     primitiveVisitors.put(FromConnectConversionKey.of(Type.BOOLEAN), new FromConnectVisitor.BooleanVisitor());
@@ -74,48 +73,6 @@ public class FromConnectSchemaConverter {
     primitiveVisitors.put(FromConnectConversionKey.of(Timestamp.SCHEMA), new FromConnectVisitor.DateTimeVisitor());
 
     PRIMITIVE_VISITORS = ImmutableMap.copyOf(primitiveVisitors);
-  }
-
-  static class Definition {
-    private final JSONObject jsonSchema;
-    private final String name;
-    private final List<FromConnectVisitor> visitors;
-
-
-    private Definition(JSONObject jsonSchema, String name, List<FromConnectVisitor> visitors) {
-      this.jsonSchema = jsonSchema;
-      this.name = name;
-      this.visitors = visitors;
-    }
-
-    public static Definition of(JSONObject jsonSchema, String ref, List<FromConnectVisitor> visitors) {
-      return new Definition(jsonSchema, ref, visitors);
-    }
-
-    public JSONObject jsonSchema() {
-      return this.jsonSchema;
-    }
-
-    public String name() {
-      return this.name;
-    }
-
-    public JSONObject ref() {
-      return new JSONObject()
-          .put("$ref", String.format("#/definitions/%s", this.name));
-    }
-
-    public List<FromConnectVisitor> visitors() {
-      return this.visitors;
-    }
-
-    @Override
-    public String toString() {
-      return MoreObjects.toStringHelper(this)
-          .add("jsonSchema", jsonSchema)
-          .add("name", name)
-          .toString();
-    }
   }
 
   public static FromConnectState toJsonSchema(org.apache.kafka.connect.data.Schema schema, String headerName) {
@@ -217,6 +174,48 @@ public class FromConnectSchemaConverter {
     log.trace("toJsonSchema() - '{}' is not primitive.", schema.type());
 
     return result;
+  }
+
+  static class Definition {
+    private final JSONObject jsonSchema;
+    private final String name;
+    private final List<FromConnectVisitor> visitors;
+
+
+    private Definition(JSONObject jsonSchema, String name, List<FromConnectVisitor> visitors) {
+      this.jsonSchema = jsonSchema;
+      this.name = name;
+      this.visitors = visitors;
+    }
+
+    public static Definition of(JSONObject jsonSchema, String ref, List<FromConnectVisitor> visitors) {
+      return new Definition(jsonSchema, ref, visitors);
+    }
+
+    public JSONObject jsonSchema() {
+      return this.jsonSchema;
+    }
+
+    public String name() {
+      return this.name;
+    }
+
+    public JSONObject ref() {
+      return new JSONObject()
+          .put("$ref", String.format("#/definitions/%s", this.name));
+    }
+
+    public List<FromConnectVisitor> visitors() {
+      return this.visitors;
+    }
+
+    @Override
+    public String toString() {
+      return MoreObjects.toStringHelper(this)
+          .add("jsonSchema", jsonSchema)
+          .add("name", name)
+          .toString();
+    }
   }
 
 

@@ -24,28 +24,18 @@ import com.fasterxml.jackson.databind.node.TextNode;
 import com.google.common.io.BaseEncoding;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
-import org.apache.kafka.connect.errors.DataException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.ZoneId;
 import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
-import java.time.temporal.TemporalAccessor;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
-import java.util.TimeZone;
 
 public abstract class FromJsonVisitor<T extends JsonNode, V> {
   protected final Schema schema;
@@ -135,6 +125,7 @@ public abstract class FromJsonVisitor<T extends JsonNode, V> {
 
   public static class DateTimeVisitor extends FromJsonVisitor<TextNode, java.util.Date> {
     private static final Logger log = LoggerFactory.getLogger(DateTimeVisitor.class);
+
     public DateTimeVisitor(Schema schema) {
       super(schema);
     }
@@ -147,8 +138,10 @@ public abstract class FromJsonVisitor<T extends JsonNode, V> {
       return Date.from(instant);
     }
   }
+
   public static class DateVisitor extends FromJsonVisitor<TextNode, java.util.Date> {
     private static final Logger log = LoggerFactory.getLogger(DateTimeVisitor.class);
+
     public DateVisitor(Schema schema) {
       super(schema);
     }
@@ -161,8 +154,10 @@ public abstract class FromJsonVisitor<T extends JsonNode, V> {
       return Date.from(instant);
     }
   }
+
   public static class TimeVisitor extends FromJsonVisitor<TextNode, java.util.Date> {
     private static final Logger log = LoggerFactory.getLogger(DateTimeVisitor.class);
+
     public TimeVisitor(Schema schema) {
       super(schema);
     }

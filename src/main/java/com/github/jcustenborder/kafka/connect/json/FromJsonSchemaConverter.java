@@ -46,21 +46,11 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public abstract class FromJsonSchemaConverter<T extends org.everit.json.schema.Schema, J extends JsonNode, V> {
-  private static final Logger log = LoggerFactory.getLogger(FromJsonSchemaConverter.class);
-
-  protected abstract SchemaBuilder schemaBuilder(T schema);
-
-  protected abstract FromJsonConversionKey key();
-
-  protected abstract FromJsonVisitor<J, V> jsonVisitor(Schema connectSchema, Map<String, FromJsonVisitor> visitors);
-
-
-  protected abstract void fromJSON(SchemaBuilder builder, T jsonSchema, Map<String, FromJsonVisitor> visitors);
-
   static final Map<
       FromJsonConversionKey,
       FromJsonSchemaConverter<? extends org.everit.json.schema.Schema, ? extends JsonNode, ?>
       > LOOKUP;
+  private static final Logger log = LoggerFactory.getLogger(FromJsonSchemaConverter.class);
 
   static {
     LOOKUP = Stream.of(
@@ -112,6 +102,14 @@ public abstract class FromJsonSchemaConverter<T extends org.everit.json.schema.S
     FromJsonVisitor visitor = converter.jsonVisitor(schema, visitors);
     return FromJsonState.of(schema, visitor);
   }
+
+  protected abstract SchemaBuilder schemaBuilder(T schema);
+
+  protected abstract FromJsonConversionKey key();
+
+  protected abstract FromJsonVisitor<J, V> jsonVisitor(Schema connectSchema, Map<String, FromJsonVisitor> visitors);
+
+  protected abstract void fromJSON(SchemaBuilder builder, T jsonSchema, Map<String, FromJsonVisitor> visitors);
 
   static class BooleanSchemaConverter extends FromJsonSchemaConverter<BooleanSchema, BooleanNode, Boolean> {
     @Override

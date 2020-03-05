@@ -24,6 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 class FromJsonConversionKey {
+  static final String UNNAMED_FORMAT = "unnamed-format";
   private static final Logger log = LoggerFactory.getLogger(FromJsonConversionKey.class);
   final Class<? extends org.everit.json.schema.Schema> schemaClass;
   final String format;
@@ -36,8 +37,6 @@ class FromJsonConversionKey {
     this.requiresInteger = requiresInteger;
     this.contentEncoding = contentEncoding;
   }
-
-  static final String UNNAMED_FORMAT = "unnamed-format";
 
   public static FromJsonConversionKey of(org.everit.json.schema.Schema jsonSchema) {
     String format;
@@ -63,6 +62,10 @@ class FromJsonConversionKey {
     return new FromJsonConversionKey(jsonSchema.getClass(), format, requiresInteger, contentEncoding);
   }
 
+  public static Builder from(Class<? extends org.everit.json.schema.Schema> schemaClass) {
+    return new Builder().schemaClass(schemaClass);
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
@@ -79,16 +82,6 @@ class FromJsonConversionKey {
     return Objects.hashCode(schemaClass, format, requiresInteger, contentEncoding);
   }
 
-  @Override
-  public String toString() {
-    return MoreObjects.toStringHelper(this)
-        .add("schemaClass", schemaClass)
-        .add("format", format)
-        .add("requiresInteger", requiresInteger)
-        .add("contentEncoding", contentEncoding)
-        .toString();
-  }
-
   //  public static ConversionKey of(Class<? extends org.everit.json.schema.Schema> schemaClass) {
 //    return new ConversionKey(schemaClass, null, null, contentMediaType);
 //  }
@@ -101,18 +94,23 @@ class FromJsonConversionKey {
 //    return new ConversionKey(schemaClass, null, requiesInteger, contentMediaType);
 //  }
 
-  public static Builder from(Class<? extends org.everit.json.schema.Schema> schemaClass) {
-    return new Builder().schemaClass(schemaClass);
+  @Override
+  public String toString() {
+    return MoreObjects.toStringHelper(this)
+        .add("schemaClass", schemaClass)
+        .add("format", format)
+        .add("requiresInteger", requiresInteger)
+        .add("contentEncoding", contentEncoding)
+        .toString();
   }
 
   static class Builder {
-    private Builder() {
-    }
-
     Class<? extends org.everit.json.schema.Schema> schemaClass;
     String format;
     Boolean requiresInteger;
     String contentEncoding;
+    private Builder() {
+    }
 
     public Builder schemaClass(Class<? extends Schema> schemaClass) {
       this.schemaClass = schemaClass;

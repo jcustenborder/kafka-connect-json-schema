@@ -40,6 +40,8 @@ public class JsonSchemaConverter implements Converter {
   String jsonSchemaHeader;
   Charset encodingCharset;
   ObjectMapper objectMapper;
+  Map<Schema, FromConnectState> fromConnectStateLookup = new HashMap<>();
+  Map<String, FromJsonState> toConnectStateLookup = new HashMap<>();
 
   @Override
   public void configure(Map<String, ?> settings, boolean isKey) {
@@ -55,8 +57,6 @@ public class JsonSchemaConverter implements Converter {
         "This converter requires Kafka 2.4.0 or higher with header support."
     );
   }
-
-  Map<Schema, FromConnectState> fromConnectStateLookup = new HashMap<>();
 
   @Override
   public byte[] fromConnectData(String topic, Headers headers, Schema schema, Object value) {
@@ -83,8 +83,6 @@ public class JsonSchemaConverter implements Converter {
         "This converter requires Kafka 2.4.0 or higher with header support."
     );
   }
-
-  Map<String, FromJsonState> toConnectStateLookup = new HashMap<>();
 
   @Override
   public SchemaAndValue toConnectData(String topic, Headers headers, byte[] value) {
