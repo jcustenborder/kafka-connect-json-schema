@@ -28,11 +28,12 @@ import java.util.Map;
 class FromJsonConfig extends AbstractConfig {
   public static final String SCHEMA_URL_CONF = "json.schema.url";
   static final String SCHEMA_URL_DOC = "Url to retrieve the schema from.";
-  public static final String SCHEMA_LOCATION_CONF = "json.schema.location";
-  static final String SCHEMA_LOCATION_DOC = "Location to retrieve the schema from.";
   public static final String SCHEMA_INLINE_CONF = "json.schema.inline";
   static final String SCHEMA_INLINE_DOC = "The JSON schema to use as an escaped string.";
-
+  public static final String SCHEMA_LOCATION_CONF = "json.schema.location";
+  static final String SCHEMA_LOCATION_DOC = "Location to retrieve the schema from. `Url` is used " +
+      "to retrieve the schema from a url. `Inline` is used to read the schema from the `" +
+      SCHEMA_INLINE_CONF + "` configuration value.";
 
   public enum SchemaLocation {
     Url,
@@ -41,12 +42,14 @@ class FromJsonConfig extends AbstractConfig {
 
   public final URL schemaUrl;
   public final SchemaLocation schemaLocation;
+  public final String schemaText;
 
 
   public FromJsonConfig(Map<?, ?> originals) {
     super(config(), originals);
     this.schemaUrl = ConfigUtils.url(this, SCHEMA_URL_CONF);
     this.schemaLocation = ConfigUtils.getEnum(SchemaLocation.class, this, SCHEMA_LOCATION_CONF);
+    this.schemaText = getString(SCHEMA_INLINE_CONF);
   }
 
   public static ConfigDef config() {
@@ -56,6 +59,7 @@ class FromJsonConfig extends AbstractConfig {
                 .documentation(SCHEMA_URL_DOC)
                 .validator(Validators.validUrl())
                 .importance(ConfigDef.Importance.HIGH)
+                .defaultValue("File:///doesNotExist")
                 .build()
         ).define(
             ConfigKeyBuilder.of(SCHEMA_LOCATION_CONF, ConfigDef.Type.STRING)
@@ -68,6 +72,7 @@ class FromJsonConfig extends AbstractConfig {
         ).define(
             ConfigKeyBuilder.of(SCHEMA_INLINE_CONF, ConfigDef.Type.STRING)
                 .documentation(SCHEMA_INLINE_DOC)
+                .recommender(Recommenders.visibleIf(SCHEMA_LOCATION_CONF, SchemaLocation.Inline.toString()))
                 .importance(ConfigDef.Importance.HIGH)
                 .defaultValue("")
                 .build()

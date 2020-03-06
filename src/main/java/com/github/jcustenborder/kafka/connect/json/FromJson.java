@@ -84,14 +84,24 @@ public class FromJson<R extends ConnectRecord<R>> extends BaseKeyValueTransforma
     this.config = new FromJsonConfig(map);
 
     org.everit.json.schema.Schema schema;
-    try {
-      try (InputStream inputStream = this.config.schemaUrl.openStream()) {
-        schema = Utils.loadSchema(inputStream);
+    if (FromJsonConfig.SchemaLocation.Url == this.config.schemaLocation) {
+      try {
+        try (InputStream inputStream = this.config.schemaUrl.openStream()) {
+          schema = Utils.loadSchema(inputStream);
+        }
+      } catch (IOException e) {
+        ConfigException exception = new ConfigException(FromJsonConfig.SCHEMA_URL_CONF, this.config.schemaUrl, "exception while loading schema");
+        exception.initCause(e);
+        throw exception;
       }
-    } catch (IOException e) {
-      ConfigException exception = new ConfigException(FromJsonConfig.SCHEMA_URL_CONF, this.config.schemaUrl, "exception while loading schema");
-      exception.initCause(e);
-      throw exception;
+    } else if (FromJsonConfig.SchemaLocation.Inline == this.config.schemaLocation) {
+      schema = Utils.loadSchema(this.config.schemaText);
+    } else {
+      throw new ConfigException(
+          FromJsonConfig.SCHEMA_LOCATION_CONF,
+          this.config.schemaLocation.toString(),
+          "Location is not supported"
+      );
     }
 
     this.fromJsonState = FromJsonSchemaConverter.fromJSON(schema);

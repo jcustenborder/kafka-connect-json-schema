@@ -30,6 +30,8 @@ import org.json.JSONTokener;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.Reader;
+import java.io.StringReader;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 
@@ -92,5 +94,14 @@ public class Utils {
   public static int scale(org.apache.kafka.connect.data.Schema connectSchema) {
     String scale = connectSchema.parameters().get(Decimal.SCALE_FIELD);
     return scale(scale);
+  }
+
+  public static Schema loadSchema(String schemaText) {
+    try (Reader reader = new StringReader(schemaText)) {
+      JSONObject rawSchema = new JSONObject(new JSONTokener(reader));
+      return loadSchema(rawSchema);
+    } catch (IOException ex) {
+      throw new DataException("Could not load schema", ex);
+    }
   }
 }
