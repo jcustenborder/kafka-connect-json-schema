@@ -20,9 +20,12 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Charsets;
 import com.google.common.hash.Hashing;
+import com.google.common.io.ByteStreams;
+import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.Headers;
+import org.apache.kafka.common.header.internals.RecordHeader;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.errors.DataException;
@@ -30,6 +33,7 @@ import org.apache.kafka.connect.storage.Converter;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
@@ -37,18 +41,46 @@ import java.util.Map;
 public class JsonSchemaConverter implements Converter {
   private static final String KEY_HEADER = "json.key.schema";
   private static final String VALUE_HEADER = "json.value.schema";
+  JsonSchemaConverterConfig config;
   String jsonSchemaHeader;
   Charset encodingCharset;
   ObjectMapper objectMapper;
   Map<Schema, FromConnectState> fromConnectStateLookup = new HashMap<>();
   Map<String, FromJsonState> toConnectStateLookup = new HashMap<>();
+  Header fallbackHeader;
 
   @Override
   public void configure(Map<String, ?> settings, boolean isKey) {
+    this.config = new JsonSchemaConverterConfig(settings);
     this.jsonSchemaHeader = isKey ? KEY_HEADER : VALUE_HEADER;
     this.encodingCharset = Charsets.UTF_8;
     this.objectMapper = JacksonFactory.create();
 
+    if (this.config.insertSchema) {
+      byte[] headerValue;
+      if (FromJsonConfig.SchemaLocation.Url == this.config.schemaLocation) {
+        try {
+          try (InputStream inputStream = this.config.schemaUrl.openStream()) {
+            headerValue = ByteStreams.toByteArray(inputStream);
+          }
+        } catch (IOException e) {
+          ConfigException exception = new ConfigException(FromJsonConfig.SCHEMA_URL_CONF, this.config.schemaUrl, "exception while loading schema");
+          exception.initCause(e);
+          throw exception;
+        }
+      } else if (FromJsonConfig.SchemaLocation.Inline == this.config.schemaLocation) {
+        headerValue = this.jsonSchemaHeader.getBytes(Charsets.UTF_8);
+      } else {
+        throw new ConfigException(
+            FromJsonConfig.SCHEMA_LOCATION_CONF,
+            this.config.schemaLocation.toString(),
+            "Location is not supported"
+        );
+      }
+      this.fallbackHeader = new RecordHeader(this.jsonSchemaHeader, headerValue);
+    } else {
+      fallbackHeader = null;
+    }
   }
 
   @Override
@@ -84,16 +116,30 @@ public class JsonSchemaConverter implements Converter {
     );
   }
 
+  Header schemaHeader(Headers headers) {
+    Header schemaHeader = headers.lastHeader(this.jsonSchemaHeader);
+    if (null == schemaHeader) {
+      schemaHeader = this.fallbackHeader;
+    }
+    return schemaHeader;
+  }
+
   @Override
   public SchemaAndValue toConnectData(String topic, Headers headers, byte[] value) {
     if (null == value) {
       return SchemaAndValue.NULL;
     }
-    Header schemaHeader = headers.lastHeader(this.jsonSchemaHeader);
+
+    final Header schemaHeader = schemaHeader(headers);
 
     if (null == schemaHeader) {
-      //TODO: Add support to use a default header value.
-      throw new DataException(String.format("message does not have {} header.", this.jsonSchemaHeader));
+      throw new DataException(
+          String.format(
+              "Record does not have '{}' header and '%s' is not enabled.",
+              this.jsonSchemaHeader,
+              JsonSchemaConverterConfig.INSERT_SCHEMA_ENABLED_CONF
+          )
+      );
     }
 
     String hash = Hashing.goodFastHash(32)

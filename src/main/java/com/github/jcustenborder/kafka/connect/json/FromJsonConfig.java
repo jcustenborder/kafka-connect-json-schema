@@ -52,16 +52,16 @@ class FromJsonConfig extends AbstractConfig {
     this.schemaText = getString(SCHEMA_INLINE_CONF);
   }
 
-  public static ConfigDef config() {
-    return new ConfigDef()
+  public static void addConfigItems(ConfigDef configDef) {
+    configDef.define(
+        ConfigKeyBuilder.of(SCHEMA_URL_CONF, ConfigDef.Type.STRING)
+            .documentation(SCHEMA_URL_DOC)
+            .validator(Validators.validUrl())
+            .importance(ConfigDef.Importance.HIGH)
+            .defaultValue("File:///doesNotExist")
+            .build()
+    )
         .define(
-            ConfigKeyBuilder.of(SCHEMA_URL_CONF, ConfigDef.Type.STRING)
-                .documentation(SCHEMA_URL_DOC)
-                .validator(Validators.validUrl())
-                .importance(ConfigDef.Importance.HIGH)
-                .defaultValue("File:///doesNotExist")
-                .build()
-        ).define(
             ConfigKeyBuilder.of(SCHEMA_LOCATION_CONF, ConfigDef.Type.STRING)
                 .documentation(SCHEMA_LOCATION_DOC)
                 .validator(Validators.validEnum(SchemaLocation.class))
@@ -69,13 +69,20 @@ class FromJsonConfig extends AbstractConfig {
                 .importance(ConfigDef.Importance.HIGH)
                 .defaultValue(SchemaLocation.Url.toString())
                 .build()
-        ).define(
+        )
+        .define(
             ConfigKeyBuilder.of(SCHEMA_INLINE_CONF, ConfigDef.Type.STRING)
                 .documentation(SCHEMA_INLINE_DOC)
                 .recommender(Recommenders.visibleIf(SCHEMA_LOCATION_CONF, SchemaLocation.Inline.toString()))
                 .importance(ConfigDef.Importance.HIGH)
                 .defaultValue("")
                 .build()
-        );
+      );
+  }
+
+  public static ConfigDef config() {
+    ConfigDef configDef = new ConfigDef();
+    addConfigItems(configDef);
+    return configDef;
   }
 }
