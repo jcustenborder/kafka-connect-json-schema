@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-    Copyright © 2019 Jeremy Custenborder (jcustenborder@gmail.com)
+    Copyright © 2020 Jeremy Custenborder (jcustenborder@gmail.com)
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -24,14 +24,14 @@
     <parent>
         <groupId>com.github.jcustenborder.kafka.connect</groupId>
         <artifactId>kafka-connect-parent</artifactId>
-        <version>2.2.1-cp1</version>
+        <version>2.4.0</version>
     </parent>
-    <artifactId>kafka-connect-example</artifactId>
+    <artifactId>kafka-connect-json-schema</artifactId>
     <version>0.0.2-SNAPSHOT</version>
-    <name>kafka-connect-example</name>
+    <name>kafka-connect-json-schema</name>
     <description>A Kafka Connect connector receiving data from example.</description>
-    <url>https://github.com/jcustenborder/kafka-connect-example</url>
-    <inceptionYear>2019</inceptionYear>
+    <url>https://github.com/jcustenborder/kafka-connect-json-schema</url>
+    <inceptionYear>2020</inceptionYear>
     <licenses>
         <license>
             <name>The Apache License, Version 2.0</name>
@@ -50,16 +50,28 @@
         </developer>
     </developers>
     <scm>
-        <connection>scm:git:https://github.com/jcustenborder/kafka-connect-example.git</connection>
-        <developerConnection>scm:git:git@github.com:jcustenborder/kafka-connect-example.git
+        <connection>scm:git:https://github.com/jcustenborder/kafka-connect-json-schema.git</connection>
+        <developerConnection>scm:git:git@github.com:jcustenborder/kafka-connect-json-schema.git
         </developerConnection>
-        <url>https://github.com/jcustenborder/kafka-connect-example</url>
+        <url>https://github.com/jcustenborder/kafka-connect-json-schema</url>
     </scm>
     <issueManagement>
         <system>github</system>
-        <url>https://github.com/jcustenborder/kafka-connect-example/issues</url>
+        <url>https://github.com/jcustenborder/kafka-connect-json-schema/issues</url>
     </issueManagement>
-    <dependencies/>
+    <dependencies>
+        <dependency>
+            <groupId>com.github.everit-org.json-schema</groupId>
+            <artifactId>org.everit.json.schema</artifactId>
+            <version>1.12.1</version>
+        </dependency>
+    </dependencies>
+    <repositories>
+        <repository>
+            <id>jitpack.io</id>
+            <url>https://jitpack.io</url>
+        </repository>
+    </repositories>
     <build>
         <plugins>
             <plugin>
@@ -82,25 +94,28 @@
                 </executions>
             </plugin>
 
-            <!--
-            Uncomment to prepare a package for the Confluent Hub.
             <plugin>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-connect-maven-plugin</artifactId>
                 <configuration>
-                    <documentationUrl>
-                        https://jcustenborder.github.io/kafka-connect-documentation/
-                    </documentationUrl>
+                    <confluentControlCenterIntegration>true</confluentControlCenterIntegration>
+                    <documentationUrl>https://jcustenborder.github.io/kafka-connect-documentation/</documentationUrl>
                     <componentTypes>
-                        <componentType>sink</componentType>
+                        <componentType>transform</componentType>
+                        <componentType>converter</componentType>
                     </componentTypes>
                     <tags>
-                        <tag>Redis</tag>
+                        <tag>Transform</tag>
+                        <tag>FIX</tag>
                     </tags>
-                    <title>Kafka Connect Redis</title>
+                    <title>Kafka Connect JSON Schema Transformations</title>
+                    <supportUrl>${pom.issueManagement.url}</supportUrl>
+                    <supportSummary>Support provided through community involvement.</supportSummary>
+                    <excludes>
+                        <exclude>org.reflections:reflections</exclude>
+                    </excludes>
                 </configuration>
             </plugin>
-            -->
         </plugins>
     </build>
 </project>

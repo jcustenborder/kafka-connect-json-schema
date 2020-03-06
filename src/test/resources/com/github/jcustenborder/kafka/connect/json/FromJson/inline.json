@@ -1,0 +1,28 @@
+{
+  "title" : "Inline Config",
+  "input" : {
+    "topic" : "foo",
+    "kafkaPartition" : 1,
+    "keySchema" : {
+      "type" : "STRING",
+      "isOptional" : false
+    },
+    "key" : "foo",
+    "valueSchema" : {
+      "type" : "BYTES",
+      "isOptional" : false
+    },
+    "value" : "ewogICJmaXJzdE5hbWUiOiAiSm9obiIsCiAgImxhc3ROYW1lIjogIkRvZSIsCiAgImFnZSI6IDIxCn0=",
+    "timestamp" : 1530286549123,
+    "timestampType" : "CREATE_TIME",
+    "offset" : 91283741,
+    "headers" : [ ]
+  },
+  "description" : "This example takes an input value that is a byte array and reads this value based on the supplied schema to a Kafka Connect value. The result is data that is based on the schema",
+  "name" : "Inline Config",
+  "config" : {
+    "json.schema.location" : "Inline",
+    "json.schema.inline" : "{\n  \"$id\": \"https://example.com/person.schema.json\",\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"title\": \"Person\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"firstName\": {\n      \"type\": \"string\",\n      \"description\": \"The person's first name.\"\n    },\n    \"lastName\": {\n      \"type\": \"string\",\n      \"description\": \"The person's last name.\"\n    },\n    \"age\": {\n      \"description\": \"Age in years which must be equal to or greater than zero.\",\n      \"type\": \"integer\",\n      \"minimum\": 0\n    }\n  }\n}"
+  },
+  "childClass" : "Value"
+}

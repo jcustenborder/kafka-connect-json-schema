@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copyright © 2019 Jeremy Custenborder (jcustenborder@gmail.com)
+# Copyright © 2020 Jeremy Custenborder (jcustenborder@gmail.com)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.

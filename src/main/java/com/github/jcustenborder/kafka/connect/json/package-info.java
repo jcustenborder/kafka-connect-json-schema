@@ -1,5 +1,5 @@
 /**
- * Copyright © 2019 Jeremy Custenborder (jcustenborder@gmail.com)
+ * Copyright © 2020 Jeremy Custenborder (jcustenborder@gmail.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,14 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-@Introduction("This is information about the connector.")
-@Title("Title")
-@DocumentationWarning("This is a warning")
+@Introduction("This plugin is used to add additional JSON parsing functionality to Kafka Connect.")
+@Title("Json Schema")
 @PluginOwner("jcustenborder")
-@PluginName("kafka-connect-example")
-package com.github.jcustenborder.kafka.connect.example;
+@PluginName("kafka-connect-json-schema")
+package com.github.jcustenborder.kafka.connect.json;
 
-import com.github.jcustenborder.kafka.connect.utils.config.DocumentationWarning;
 import com.github.jcustenborder.kafka.connect.utils.config.Introduction;
 import com.github.jcustenborder.kafka.connect.utils.config.PluginName;
 import com.github.jcustenborder.kafka.connect.utils.config.PluginOwner;
