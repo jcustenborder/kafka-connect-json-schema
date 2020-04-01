@@ -15,6 +15,10 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -50,6 +54,25 @@ public class FromJsonTest {
   }
 
   @Test
+  public void customdate() throws IOException {
+    byte[] input = ByteStreams.toByteArray(this.getClass().getResourceAsStream(
+        "customdate.data.json"
+    ));
+    File schemaFile = new File("src/test/resources/com/github/jcustenborder/kafka/connect/json/customdate.schema.json");
+    Map<String, String> settings = ImmutableMap.of(
+        FromJsonConfig.SCHEMA_URL_CONF, schemaFile.toURI().toString()
+    );
+    this.transform.configure(settings);
+    SinkRecord inputRecord = SinkRecordHelper.write("foo", new SchemaAndValue(Schema.STRING_SCHEMA, "foo"), new SchemaAndValue(Schema.BYTES_SCHEMA, input));
+    SinkRecord transformedRecord = this.transform.apply(inputRecord);
+    assertNotNull(transformedRecord);
+    assertNotNull(transformedRecord.value());
+    assertTrue(transformedRecord.value() instanceof Struct);
+    Struct actual = (Struct) transformedRecord.value();
+    log.info("actual = '{}'", actual);
+  }
+
+  @Test
   public void validate() throws IOException {
     byte[] input = ByteStreams.toByteArray(this.getClass().getResourceAsStream(
         "basic.data.json"
@@ -61,12 +84,21 @@ public class FromJsonTest {
     );
     this.transform.configure(settings);
     SinkRecord inputRecord = SinkRecordHelper.write("foo", new SchemaAndValue(Schema.STRING_SCHEMA, "foo"), new SchemaAndValue(Schema.BYTES_SCHEMA, input));
-    DataException exception = assertThrows(DataException.class, ()->{
+    DataException exception = assertThrows(DataException.class, () -> {
       SinkRecord transformedRecord = this.transform.apply(inputRecord);
     });
 
     assertTrue(exception.getMessage().contains("required key [latitude] not found"));
     assertTrue(exception.getMessage().contains("required key [longitude] not found"));
+  }
+
+  @Test
+  public void foo() {
+    String timestamp = "2020-01-07 04:47:05.0000000";
+    DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSSSSSS")
+        .withZone(ZoneId.of("UTC"));
+    log.info(dateFormat.format(LocalDateTime.now()));
+    ZonedDateTime dateTime = ZonedDateTime.parse(timestamp, dateFormat);
   }
 
 }

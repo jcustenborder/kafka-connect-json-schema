@@ -70,6 +70,7 @@ public class Utils {
         .addFormatValidator(new TimeFormatValidator())
         .addFormatValidator(new DateTimeFormatValidator())
         .addFormatValidator(new DecimalFormatValidator())
+        .addFormatValidator(new CustomTimestampFormatValidator())
         .schemaJson(rawSchema)
         .build()
         .load()

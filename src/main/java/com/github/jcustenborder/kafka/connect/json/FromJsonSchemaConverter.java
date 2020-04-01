@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.node.BooleanNode;
 import com.fasterxml.jackson.databind.node.NumericNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableSet;
 import org.apache.kafka.connect.data.Date;
@@ -65,7 +66,8 @@ public abstract class FromJsonSchemaConverter<T extends org.everit.json.schema.S
         new FloatSchemaConverter(),
         new ArraySchemaConverter(),
         new BytesSchemaConverter(),
-        new DecimalSchemaConverter()
+        new DecimalSchemaConverter(),
+        new CustomTimestampConverter()
     ).collect(Collectors.toMap(FromJsonSchemaConverter::key, c -> c));
   }
 
@@ -398,6 +400,34 @@ public abstract class FromJsonSchemaConverter<T extends org.everit.json.schema.S
     protected void fromJSON(SchemaBuilder builder, ArraySchema jsonSchema, Map<String, FromJsonVisitor> visitors) {
       FromJsonState state = FromJsonSchemaConverter.fromJSON(jsonSchema.getAllItemSchema());
       visitors.put("item", state.visitor);
+    }
+  }
+
+  static class CustomTimestampConverter extends FromJsonSchemaConverter<StringSchema, TextNode, java.util.Date> {
+
+    @Override
+    protected FromJsonVisitor<TextNode, java.util.Date> jsonVisitor(Schema connectSchema, Map<String, FromJsonVisitor> visitors) {
+      return new FromJsonVisitor.CustomDateVisitor(connectSchema);
+    }
+
+    @Override
+    protected SchemaBuilder schemaBuilder(StringSchema schema) {
+      Object dateTimeFormat = schema.getUnprocessedProperties().get("dateTimeFormat");
+      Preconditions.checkNotNull(dateTimeFormat, "dateTimeFormat cannot be null");
+      return Timestamp.builder()
+          .parameter("dateFormat", dateTimeFormat.toString());
+    }
+
+    @Override
+    protected FromJsonConversionKey key() {
+      return FromJsonConversionKey.from(StringSchema.class)
+          .format("custom-timestamp")
+          .build();
+    }
+
+    @Override
+    protected void fromJSON(SchemaBuilder builder, StringSchema jsonSchema, Map<String, FromJsonVisitor> visitors) {
+      log.trace("fromJson() - Processing '{}'", jsonSchema);
     }
   }
 }
