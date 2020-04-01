@@ -102,7 +102,7 @@ public abstract class FromJsonSchemaConverter<T extends org.everit.json.schema.S
     converter.fromJSON(builder, jsonSchema, visitors);
     Schema schema = builder.build();
     FromJsonVisitor visitor = converter.jsonVisitor(schema, visitors);
-    return FromJsonState.of(schema, visitor);
+    return FromJsonState.of(jsonSchema, schema, visitor);
   }
 
   protected abstract SchemaBuilder schemaBuilder(T schema);

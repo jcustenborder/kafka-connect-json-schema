@@ -95,9 +95,16 @@ public abstract class FromJsonVisitor<T extends JsonNode, V> {
     protected Struct doVisit(ObjectNode node) {
       Struct result = new Struct(this.schema);
       visitors.forEach((fieldName, visitor) -> {
-        JsonNode rawValue = node.get(fieldName);
-        Object convertedValue = visitor.visit(rawValue);
-        result.put(fieldName, convertedValue);
+        try {
+          JsonNode rawValue = node.get(fieldName);
+          Object convertedValue = visitor.visit(rawValue);
+          result.put(fieldName, convertedValue);
+        } catch (Exception ex) {
+          throw new IllegalStateException(
+              String.format("Exception thrown while reading %s:%s", this.schema.name(), fieldName),
+              ex
+          );
+        }
       });
 
       return result;

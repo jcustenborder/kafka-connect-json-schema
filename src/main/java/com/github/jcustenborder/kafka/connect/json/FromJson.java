@@ -18,6 +18,7 @@ package com.github.jcustenborder.kafka.connect.json;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.jcustenborder.kafka.connect.utils.config.Description;
+import com.github.jcustenborder.kafka.connect.utils.config.DocumentationTip;
 import com.github.jcustenborder.kafka.connect.utils.config.Title;
 import com.github.jcustenborder.kafka.connect.utils.transformation.BaseKeyValueTransformation;
 import org.apache.kafka.common.config.ConfigDef;
@@ -26,15 +27,25 @@ import org.apache.kafka.connect.connector.ConnectRecord;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.errors.DataException;
+import org.everit.json.schema.ValidationException;
+import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.Reader;
+import java.io.StringReader;
 import java.util.Map;
 
 @Title("From Json transformation")
 @Description("The FromJson will read JSON data that is in string on byte form and parse the data to " +
     "a connect structure based on the JSON schema provided.")
+@DocumentationTip("This transformation expects data to be in either String or Byte format. You are " +
+    "most likely going to use the ByteArrayConverter or the StringConverter.")
 public class FromJson<R extends ConnectRecord<R>> extends BaseKeyValueTransformation<R> {
+  private static final Logger log = LoggerFactory.getLogger(FromJson.class);
   FromJsonConfig config;
 
   protected FromJson(boolean isKey) {
@@ -56,9 +67,40 @@ public class FromJson<R extends ConnectRecord<R>> extends BaseKeyValueTransforma
     return new SchemaAndValue(this.fromJsonState.schema, result);
   }
 
+
+  void validateJson(JSONObject jsonObject) {
+    try {
+      this.fromJsonState.jsonSchema.validate(jsonObject);
+    } catch (ValidationException ex) {
+      StringBuilder builder = new StringBuilder();
+      builder.append(
+          String.format(
+              "Could not validate JSON. Found %s violations(s).",
+              ex.getViolationCount()
+          )
+      );
+      for (ValidationException message : ex.getCausingExceptions()) {
+        log.error("Validation exception", message);
+        builder.append("\n");
+        builder.append(message.getMessage());
+      }
+      throw new DataException(
+          builder.toString(),
+          ex
+      );
+    }
+  }
+
+
   @Override
   protected SchemaAndValue processBytes(R record, Schema inputSchema, byte[] input) {
     try {
+      if (this.config.validateJson) {
+        try (InputStream inputStream = new ByteArrayInputStream(input)) {
+          JSONObject jsonObject = Utils.loadObject(inputStream);
+          validateJson(jsonObject);
+        }
+      }
       JsonNode node = this.objectMapper.readValue(input, JsonNode.class);
       return processJsonNode(record, inputSchema, node);
     } catch (IOException e) {
@@ -69,6 +111,12 @@ public class FromJson<R extends ConnectRecord<R>> extends BaseKeyValueTransforma
   @Override
   protected SchemaAndValue processString(R record, Schema inputSchema, String input) {
     try {
+      if (this.config.validateJson) {
+        try (Reader reader = new StringReader(input)) {
+          JSONObject jsonObject = Utils.loadObject(reader);
+          validateJson(jsonObject);
+        }
+      }
       JsonNode node = this.objectMapper.readValue(input, JsonNode.class);
       return processJsonNode(record, inputSchema, node);
     } catch (IOException e) {

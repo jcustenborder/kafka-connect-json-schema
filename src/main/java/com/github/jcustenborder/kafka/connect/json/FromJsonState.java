@@ -15,18 +15,19 @@
  */
 package com.github.jcustenborder.kafka.connect.json;
 
-import org.apache.kafka.connect.data.Schema;
 
 class FromJsonState {
-  public final Schema schema;
+  public final org.everit.json.schema.Schema jsonSchema;
+  public final org.apache.kafka.connect.data.Schema schema;
   public final FromJsonVisitor visitor;
 
-  FromJsonState(Schema schema, FromJsonVisitor visitor) {
+  FromJsonState(org.everit.json.schema.Schema jsonSchema, org.apache.kafka.connect.data.Schema schema, FromJsonVisitor visitor) {
+    this.jsonSchema = jsonSchema;
     this.schema = schema;
     this.visitor = visitor;
   }
 
-  public static FromJsonState of(Schema schema, FromJsonVisitor visitor) {
-    return new FromJsonState(schema, visitor);
+  public static FromJsonState of(org.everit.json.schema.Schema jsonSchema, org.apache.kafka.connect.data.Schema schema, FromJsonVisitor visitor) {
+    return new FromJsonState(jsonSchema, schema, visitor);
   }
 }
