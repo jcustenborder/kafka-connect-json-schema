@@ -70,6 +70,7 @@ public class Utils {
         .addFormatValidator(new TimeFormatValidator())
         .addFormatValidator(new DateTimeFormatValidator())
         .addFormatValidator(new DecimalFormatValidator())
+        .addFormatValidator(new CustomTimestampFormatValidator())
         .schemaJson(rawSchema)
         .build()
         .load()
@@ -96,12 +97,18 @@ public class Utils {
     return scale(scale);
   }
 
+  public static JSONObject loadObject(Reader reader) {
+    return new JSONObject(new JSONTokener(reader));
+  }
+
   public static Schema loadSchema(String schemaText) {
     try (Reader reader = new StringReader(schemaText)) {
-      JSONObject rawSchema = new JSONObject(new JSONTokener(reader));
+      JSONObject rawSchema = loadObject(reader);
       return loadSchema(rawSchema);
     } catch (IOException ex) {
       throw new DataException("Could not load schema", ex);
     }
   }
+
+
 }

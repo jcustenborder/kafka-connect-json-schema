@@ -1,0 +1,14 @@
+{
+  "$id": "https://example.com/person.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Person",
+  "type": "object",
+  "properties": {
+    "Timestamp": {
+      "type": "string",
+      "description": "Timestamp",
+      "format": "custom-timestamp",
+      "dateTimeFormat": "yyyy-MM-dd HH:mm:ss.SSSSSSS"
+    }
+  }
+}

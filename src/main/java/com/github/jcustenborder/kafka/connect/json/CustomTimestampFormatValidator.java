@@ -15,19 +15,18 @@
  */
 package com.github.jcustenborder.kafka.connect.json;
 
+import org.everit.json.schema.FormatValidator;
 
-class FromJsonState {
-  public final org.everit.json.schema.Schema jsonSchema;
-  public final org.apache.kafka.connect.data.Schema schema;
-  public final FromJsonVisitor visitor;
+import java.util.Optional;
 
-  FromJsonState(org.everit.json.schema.Schema jsonSchema, org.apache.kafka.connect.data.Schema schema, FromJsonVisitor visitor) {
-    this.jsonSchema = jsonSchema;
-    this.schema = schema;
-    this.visitor = visitor;
+public class CustomTimestampFormatValidator implements FormatValidator {
+  @Override
+  public Optional<String> validate(String s) {
+    return Optional.empty();
   }
 
-  public static FromJsonState of(org.everit.json.schema.Schema jsonSchema, org.apache.kafka.connect.data.Schema schema, FromJsonVisitor visitor) {
-    return new FromJsonState(jsonSchema, schema, visitor);
+  @Override
+  public String formatName() {
+    return "custom-timestamp";
   }
 }

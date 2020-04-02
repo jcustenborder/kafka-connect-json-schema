@@ -35,6 +35,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -95,9 +96,16 @@ public abstract class FromJsonVisitor<T extends JsonNode, V> {
     protected Struct doVisit(ObjectNode node) {
       Struct result = new Struct(this.schema);
       visitors.forEach((fieldName, visitor) -> {
-        JsonNode rawValue = node.get(fieldName);
-        Object convertedValue = visitor.visit(rawValue);
-        result.put(fieldName, convertedValue);
+        try {
+          JsonNode rawValue = node.get(fieldName);
+          Object convertedValue = visitor.visit(rawValue);
+          result.put(fieldName, convertedValue);
+        } catch (Exception ex) {
+          throw new IllegalStateException(
+              String.format("Exception thrown while reading %s:%s", this.schema.name(), fieldName),
+              ex
+          );
+        }
       });
 
       return result;
@@ -223,6 +231,26 @@ public abstract class FromJsonVisitor<T extends JsonNode, V> {
     @Override
     protected byte[] doVisit(TextNode node) {
       return BaseEncoding.base64().decode(node.textValue());
+    }
+  }
+
+  public static class CustomDateVisitor extends FromJsonVisitor<TextNode, java.util.Date> {
+    private static final Logger log = LoggerFactory.getLogger(DateTimeVisitor.class);
+
+    final DateTimeFormatter dateTimeFormatter;
+
+    public CustomDateVisitor(Schema schema) {
+      super(schema);
+      String pattern = schema.parameters().get("dateFormat");
+      this.dateTimeFormatter = DateTimeFormatter.ofPattern(pattern);
+    }
+
+    @Override
+    protected Date doVisit(TextNode node) {
+      log.trace(node.asText());
+      LocalDateTime localDateTime = LocalDateTime.parse(node.asText(), this.dateTimeFormatter);
+      Instant instant = localDateTime.toInstant(ZoneOffset.UTC);
+      return Date.from(instant);
     }
   }
 }

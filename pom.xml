@@ -27,7 +27,7 @@
         <version>2.4.0</version>
     </parent>
     <artifactId>kafka-connect-json-schema</artifactId>
-    <version>0.0.2-SNAPSHOT</version>
+    <version>0.2-SNAPSHOT</version>
     <name>kafka-connect-json-schema</name>
     <description>A Kafka Connect connector receiving data from example.</description>
     <url>https://github.com/jcustenborder/kafka-connect-json-schema</url>
@@ -106,7 +106,7 @@
                     </componentTypes>
                     <tags>
                         <tag>Transform</tag>
-                        <tag>FIX</tag>
+                        <tag>JSON</tag>
                     </tags>
                     <title>Kafka Connect JSON Schema Transformations</title>
                     <supportUrl>${pom.issueManagement.url}</supportUrl>
