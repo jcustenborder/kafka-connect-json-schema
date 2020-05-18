@@ -45,6 +45,7 @@ public class JsonSchemaConverter implements Converter {
   String jsonSchemaHeader;
   Charset encodingCharset;
   ObjectMapper objectMapper;
+  FromJsonSchemaConverterFactory fromJsonSchemaConverterFactory;
   Map<Schema, FromConnectState> fromConnectStateLookup = new HashMap<>();
   Map<String, FromJsonState> toConnectStateLookup = new HashMap<>();
   Header fallbackHeader;
@@ -55,24 +56,25 @@ public class JsonSchemaConverter implements Converter {
     this.jsonSchemaHeader = isKey ? KEY_HEADER : VALUE_HEADER;
     this.encodingCharset = Charsets.UTF_8;
     this.objectMapper = JacksonFactory.create();
+    this.fromJsonSchemaConverterFactory = new FromJsonSchemaConverterFactory(config);
 
     if (this.config.insertSchema) {
       byte[] headerValue;
-      if (FromJsonConfig.SchemaLocation.Url == this.config.schemaLocation) {
+      if (JsonConfig.SchemaLocation.Url == this.config.schemaLocation) {
         try {
           try (InputStream inputStream = this.config.schemaUrl.openStream()) {
             headerValue = ByteStreams.toByteArray(inputStream);
           }
         } catch (IOException e) {
-          ConfigException exception = new ConfigException(FromJsonConfig.SCHEMA_URL_CONF, this.config.schemaUrl, "exception while loading schema");
+          ConfigException exception = new ConfigException(JsonConfig.SCHEMA_URL_CONF, this.config.schemaUrl, "exception while loading schema");
           exception.initCause(e);
           throw exception;
         }
-      } else if (FromJsonConfig.SchemaLocation.Inline == this.config.schemaLocation) {
+      } else if (JsonConfig.SchemaLocation.Inline == this.config.schemaLocation) {
         headerValue = this.jsonSchemaHeader.getBytes(Charsets.UTF_8);
       } else {
         throw new ConfigException(
-            FromJsonConfig.SCHEMA_LOCATION_CONF,
+            JsonConfig.SCHEMA_LOCATION_CONF,
             this.config.schemaLocation.toString(),
             "Location is not supported"
         );
@@ -147,7 +149,7 @@ public class JsonSchemaConverter implements Converter {
         .toString();
     FromJsonState state = this.toConnectStateLookup.computeIfAbsent(hash, h -> {
       org.everit.json.schema.Schema schema = Utils.loadSchema(schemaHeader);
-      return FromJsonSchemaConverter.fromJSON(schema);
+      return this.fromJsonSchemaConverterFactory.fromJSON(schema);
     });
 
     JsonNode jsonNode;

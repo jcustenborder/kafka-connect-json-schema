@@ -16,17 +16,11 @@
 package com.github.jcustenborder.kafka.connect.json;
 
 import com.github.jcustenborder.kafka.connect.utils.config.ConfigKeyBuilder;
-import com.github.jcustenborder.kafka.connect.utils.config.ConfigUtils;
-import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
 
-import java.net.URL;
 import java.util.Map;
 
-class JsonSchemaConverterConfig extends AbstractConfig {
-  public final URL schemaUrl;
-  public final FromJsonConfig.SchemaLocation schemaLocation;
-  public final String schemaText;
+class JsonSchemaConverterConfig extends JsonConfig {
   public final boolean insertSchema;
 
   public final static String INSERT_SCHEMA_ENABLED_CONF = "json.insert.schema.enabled";
@@ -36,22 +30,17 @@ class JsonSchemaConverterConfig extends AbstractConfig {
 
   public JsonSchemaConverterConfig(Map<?, ?> originals) {
     super(config(), originals);
-    this.schemaUrl = ConfigUtils.url(this, FromJsonConfig.SCHEMA_URL_CONF);
-    this.schemaLocation = ConfigUtils.getEnum(FromJsonConfig.SchemaLocation.class, this, FromJsonConfig.SCHEMA_LOCATION_CONF);
-    this.schemaText = getString(FromJsonConfig.SCHEMA_INLINE_CONF);
     this.insertSchema = getBoolean(INSERT_SCHEMA_ENABLED_CONF);
   }
 
   public static ConfigDef config() {
-    ConfigDef configDef = new ConfigDef();
-    configDef.define(
-        ConfigKeyBuilder.of(INSERT_SCHEMA_ENABLED_CONF, ConfigDef.Type.BOOLEAN)
-            .documentation(INSERT_SCHEMA_ENABLED_DOC)
-            .importance(ConfigDef.Importance.HIGH)
-            .defaultValue(false)
-            .build()
-    );
-    FromJsonConfig.addConfigItems(configDef);
-    return configDef;
+    return JsonConfig.config()
+        .define(
+            ConfigKeyBuilder.of(INSERT_SCHEMA_ENABLED_CONF, ConfigDef.Type.BOOLEAN)
+                .documentation(INSERT_SCHEMA_ENABLED_DOC)
+                .importance(ConfigDef.Importance.HIGH)
+                .defaultValue(false)
+                .build()
+        );
   }
 }

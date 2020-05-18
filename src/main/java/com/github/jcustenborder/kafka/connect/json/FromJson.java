@@ -125,34 +125,36 @@ public class FromJson<R extends ConnectRecord<R>> extends BaseKeyValueTransforma
   }
 
   FromJsonState fromJsonState;
+  FromJsonSchemaConverterFactory fromJsonSchemaConverterFactory;
   ObjectMapper objectMapper;
 
   @Override
   public void configure(Map<String, ?> map) {
     this.config = new FromJsonConfig(map);
+    this.fromJsonSchemaConverterFactory = new FromJsonSchemaConverterFactory(config);
 
     org.everit.json.schema.Schema schema;
-    if (FromJsonConfig.SchemaLocation.Url == this.config.schemaLocation) {
+    if (JsonConfig.SchemaLocation.Url == this.config.schemaLocation) {
       try {
         try (InputStream inputStream = this.config.schemaUrl.openStream()) {
           schema = Utils.loadSchema(inputStream);
         }
       } catch (IOException e) {
-        ConfigException exception = new ConfigException(FromJsonConfig.SCHEMA_URL_CONF, this.config.schemaUrl, "exception while loading schema");
+        ConfigException exception = new ConfigException(JsonConfig.SCHEMA_URL_CONF, this.config.schemaUrl, "exception while loading schema");
         exception.initCause(e);
         throw exception;
       }
-    } else if (FromJsonConfig.SchemaLocation.Inline == this.config.schemaLocation) {
+    } else if (JsonConfig.SchemaLocation.Inline == this.config.schemaLocation) {
       schema = Utils.loadSchema(this.config.schemaText);
     } else {
       throw new ConfigException(
-          FromJsonConfig.SCHEMA_LOCATION_CONF,
+          JsonConfig.SCHEMA_LOCATION_CONF,
           this.config.schemaLocation.toString(),
           "Location is not supported"
       );
     }
 
-    this.fromJsonState = FromJsonSchemaConverter.fromJSON(schema);
+    this.fromJsonState = this.fromJsonSchemaConverterFactory.fromJSON(schema);
     this.objectMapper = JacksonFactory.create();
   }
 
