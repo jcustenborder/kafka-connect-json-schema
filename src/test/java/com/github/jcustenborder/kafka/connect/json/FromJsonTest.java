@@ -41,7 +41,7 @@ public class FromJsonTest {
     ));
     File schemaFile = new File("src/test/resources/com/github/jcustenborder/kafka/connect/json/basic.schema.json");
     Map<String, String> settings = ImmutableMap.of(
-        FromJsonConfig.SCHEMA_URL_CONF, schemaFile.toURI().toString()
+        JsonConfig.SCHEMA_URL_CONF, schemaFile.toURI().toString()
     );
     this.transform.configure(settings);
     SinkRecord inputRecord = SinkRecordHelper.write("foo", new SchemaAndValue(Schema.STRING_SCHEMA, "foo"), new SchemaAndValue(Schema.BYTES_SCHEMA, input));
@@ -60,7 +60,7 @@ public class FromJsonTest {
     ));
     File schemaFile = new File("src/test/resources/com/github/jcustenborder/kafka/connect/json/customdate.schema.json");
     Map<String, String> settings = ImmutableMap.of(
-        FromJsonConfig.SCHEMA_URL_CONF, schemaFile.toURI().toString()
+        JsonConfig.SCHEMA_URL_CONF, schemaFile.toURI().toString()
     );
     this.transform.configure(settings);
     SinkRecord inputRecord = SinkRecordHelper.write("foo", new SchemaAndValue(Schema.STRING_SCHEMA, "foo"), new SchemaAndValue(Schema.BYTES_SCHEMA, input));
@@ -79,8 +79,8 @@ public class FromJsonTest {
     ));
     File schemaFile = new File("src/test/resources/com/github/jcustenborder/kafka/connect/json/geo.schema.json");
     Map<String, String> settings = ImmutableMap.of(
-        FromJsonConfig.SCHEMA_URL_CONF, schemaFile.toURI().toString(),
-        FromJsonConfig.VALIDATE_JSON_ENABLED_CONF, "true"
+        JsonConfig.SCHEMA_URL_CONF, schemaFile.toURI().toString(),
+        JsonConfig.VALIDATE_JSON_ENABLED_CONF, "true"
     );
     this.transform.configure(settings);
     SinkRecord inputRecord = SinkRecordHelper.write("foo", new SchemaAndValue(Schema.STRING_SCHEMA, "foo"), new SchemaAndValue(Schema.BYTES_SCHEMA, input));
@@ -90,6 +90,21 @@ public class FromJsonTest {
 
     assertTrue(exception.getMessage().contains("required key [latitude] not found"));
     assertTrue(exception.getMessage().contains("required key [longitude] not found"));
+  }
+  @Test
+  public void wikiMediaRecentChange() throws IOException {
+    byte[] input = ByteStreams.toByteArray(this.getClass().getResourceAsStream(
+        "wikimedia.recentchange.data.json"
+    ));
+    File schemaFile = new File("src/test/resources/com/github/jcustenborder/kafka/connect/json/wikimedia.recentchange.schema.json");
+    Map<String, String> settings = ImmutableMap.of(
+        JsonConfig.SCHEMA_URL_CONF, schemaFile.toURI().toString(),
+        JsonConfig.VALIDATE_JSON_ENABLED_CONF, "true",
+        JsonConfig.EXCLUDE_LOCATIONS_CONF, "#/properties/log_params"
+    );
+    this.transform.configure(settings);
+    SinkRecord inputRecord = SinkRecordHelper.write("foo", new SchemaAndValue(Schema.STRING_SCHEMA, "foo"), new SchemaAndValue(Schema.BYTES_SCHEMA, input));
+    assertNotNull(inputRecord);
   }
 
   @Test

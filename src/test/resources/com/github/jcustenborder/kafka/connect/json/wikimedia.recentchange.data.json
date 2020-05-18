@@ -1,0 +1,36 @@
+{
+  "$schema": "/mediawiki/recentchange/1.0.0",
+  "meta": {
+    "uri": "https://sl.wikipedia.org/wiki/Iztrebek",
+    "request_id": "61a2da40-3fea-450f-8404-8ed5e98e784a",
+    "id": "5fe0b22e-1ed1-4acd-9e06-07a39ef800e7",
+    "dt": "2020-05-14T16:24:27Z",
+    "domain": "sl.wikipedia.org",
+    "stream": "mediawiki.recentchange",
+    "topic": "eqiad.mediawiki.recentchange",
+    "partition": 0,
+    "offset": 2403979241
+  },
+  "id": 21345744,
+  "type": "edit",
+  "namespace": 0,
+  "title": "Iztrebek",
+  "comment": "vrnitev sprememb uporabnika [[Special:Contributions/176.76.241.31|176.76.241.31]] ([[User talk:176.76.241.31|pogovor]]) na zadnje urejanje uporabnika [[User:Samuele2002|Samuele2002]]",
+  "timestamp": 1589473467,
+  "user": "Upwinxp",
+  "bot": false,
+  "minor": true,
+  "length": {
+    "old": 561,
+    "new": 1061
+  },
+  "revision": {
+    "old": 5320868,
+    "new": 5320869
+  },
+  "server_url": "https://sl.wikipedia.org",
+  "server_name": "sl.wikipedia.org",
+  "server_script_path": "/w",
+  "wiki": "slwiki",
+  "parsedcomment": "vrnitev sprememb uporabnika <a href=\"/wiki/Posebno:Prispevki/176.76.241.31\" title=\"Posebno:Prispevki/176.76.241.31\">176.76.241.31</a> (<a href=\"/w/index.php?title=Uporabni%C5%A1ki_pogovor:176.76.241.31&amp;action=edit&amp;redlink=1\" class=\"new\" title=\"Uporabniški pogovor:176.76.241.31 (stran ne obstaja)\">pogovor</a>) na zadnje urejanje uporabnika <a href=\"/wiki/Uporabnik:Samuele2002\" title=\"Uporabnik:Samuele2002\">Samuele2002</a>"
+}
