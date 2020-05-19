@@ -107,12 +107,19 @@ public abstract class FromJsonSchemaConverter<T extends org.everit.json.schema.S
       return new FromJsonVisitor.StructVisitor(connectSchema, visitors);
     }
 
+    static final Set<String> EXCLUDE_PROPERTIES = ImmutableSet.of("$schema");
+
     @Override
     protected void fromJSON(SchemaBuilder builder, ObjectSchema jsonSchema, Map<String, FromJsonVisitor> visitors) {
       Set<String> requiredProperties = ImmutableSet.copyOf(jsonSchema.getRequiredProperties());
       jsonSchema.getPropertySchemas()
           .entrySet()
           .stream()
+          .filter(e -> {
+            boolean result = !EXCLUDE_PROPERTIES.contains(e.getKey());
+            log.trace("fromJson() - filtering '{}' result = '{}'", e.getKey(), result);
+            return result;
+          })
           .filter(e -> {
             String schemaLocation = e.getValue().getSchemaLocation();
             boolean result = !this.config.excludeLocations.contains(schemaLocation);
