@@ -21,12 +21,14 @@ import com.google.common.base.Strings;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.everit.json.schema.CombinedSchema;
 import org.everit.json.schema.NullSchema;
+import org.everit.json.schema.ObjectSchema;
 import org.everit.json.schema.ReferenceSchema;
 import org.everit.json.schema.Schema;
 import org.everit.json.schema.StringSchema;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -67,11 +69,15 @@ public class FromJsonSchemaConverterFactory {
   }
 
   public FromJsonState fromJSON(org.everit.json.schema.Schema jsonSchema, boolean isOptional) {
+    final String description;
+
     if (jsonSchema instanceof ReferenceSchema) {
       ReferenceSchema referenceSchema = (ReferenceSchema) jsonSchema;
       jsonSchema = referenceSchema.getReferredSchema();
+      description = jsonSchema.getDescription();
     } else if (jsonSchema instanceof CombinedSchema) {
       CombinedSchema combinedSchema = (CombinedSchema) jsonSchema;
+      description = combinedSchema.getDescription();
       List<Schema> nonNullSubSchemas = combinedSchema
           .getSubschemas()
           .stream()
@@ -87,6 +93,8 @@ public class FromJsonSchemaConverterFactory {
         );
       }
       jsonSchema = nonNullSubSchemas.get(0);
+    } else {
+      description = jsonSchema.getDescription();
     }
     FromJsonConversionKey key = FromJsonConversionKey.of(jsonSchema);
 
@@ -104,11 +112,14 @@ public class FromJsonSchemaConverterFactory {
     }
 
     SchemaBuilder builder = converter.schemaBuilder(jsonSchema);
-    if (!Strings.isNullOrEmpty(jsonSchema.getTitle())) {
-      builder.name(cleanName(jsonSchema.getTitle()));
+    if (jsonSchema instanceof ObjectSchema) {
+      ObjectSchema objectSchema = (ObjectSchema) jsonSchema;
+      String schemaName = schemaName(objectSchema);
+      builder.name(schemaName);
     }
-    if (!Strings.isNullOrEmpty(jsonSchema.getDescription())) {
-      builder.doc(jsonSchema.getDescription());
+
+    if (!Strings.isNullOrEmpty(description)) {
+      builder.doc(description);
     }
     if (isOptional) {
       builder.optional();
@@ -120,9 +131,38 @@ public class FromJsonSchemaConverterFactory {
     return FromJsonState.of(jsonSchema, schema, visitor);
   }
 
-  private String cleanName(String title) {
-    String result = title.replaceAll("[\\/]+", ".");
+  private List<String> clean(String text) {
+    List<String> result;
+
+    if (Strings.isNullOrEmpty(text)) {
+      result = Collections.EMPTY_LIST;
+    } else {
+      result = Stream.of(text.split("[#\\\\/\\.]+"))
+          .filter(p -> !Strings.isNullOrEmpty(p))
+          .collect(Collectors.toList());
+    }
+
     return result;
   }
+
+  private String schemaName(ObjectSchema objectSchema) {
+    final List<String> parts;
+
+    if (!Strings.isNullOrEmpty(objectSchema.getTitle())) {
+      parts = clean(objectSchema.getTitle());
+    } else if (!Strings.isNullOrEmpty(objectSchema.getSchemaLocation())) {
+      parts = clean(objectSchema.getSchemaLocation());
+    } else {
+      parts = Collections.EMPTY_LIST;
+    }
+
+    return parts.isEmpty() ? null : Joiner.on('.').join(parts);
+  }
+
+  private String cleanName(String title) {
+    String result = title.replaceAll("[#\\\\/]+", ".");
+    return result;
+  }
+
 
 }

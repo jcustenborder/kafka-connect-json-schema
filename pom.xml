@@ -75,26 +75,6 @@
     <build>
         <plugins>
             <plugin>
-                <groupId>com.github.jcustenborder.maven.plugins</groupId>
-                <artifactId>kafka-connect-maven-plugin</artifactId>
-                <version>0.1.2</version>
-                <executions>
-                    <execution>
-                        <id>generate-config</id>
-                        <goals>
-                            <goal>generate-config-classes</goal>
-                        </goals>
-                        <phase>generate-sources</phase>
-                        <configuration>
-                            <includeFiles>
-                                <includeFile>src/main/connect-config-classes/*.json</includeFile>
-                            </includeFiles>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-
-            <plugin>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-connect-maven-plugin</artifactId>
                 <configuration>
