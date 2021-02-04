@@ -22,7 +22,6 @@ import com.github.jcustenborder.kafka.connect.utils.config.DocumentationTip;
 import com.github.jcustenborder.kafka.connect.utils.config.Title;
 import com.github.jcustenborder.kafka.connect.utils.transformation.BaseKeyValueTransformation;
 import org.apache.kafka.common.config.ConfigDef;
-import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.connect.connector.ConnectRecord;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaAndValue;
@@ -46,7 +45,12 @@ import java.util.Map;
     "most likely going to use the ByteArrayConverter or the StringConverter.")
 public class FromJson<R extends ConnectRecord<R>> extends BaseKeyValueTransformation<R> {
   private static final Logger log = LoggerFactory.getLogger(FromJson.class);
+
   FromJsonConfig config;
+  FromJsonSchemaConverterFactory fromJsonSchemaConverterFactory;
+  ObjectMapper objectMapper;
+  SchemaResolverFactory schemaResolverFactory;
+  SchemaResolver<R> schemaResolver;
 
   protected FromJson(boolean isKey) {
     super(isKey);
@@ -62,15 +66,15 @@ public class FromJson<R extends ConnectRecord<R>> extends BaseKeyValueTransforma
 
   }
 
-  SchemaAndValue processJsonNode(R record, Schema inputSchema, JsonNode node) {
-    Object result = this.fromJsonState.visitor.visit(node);
-    return new SchemaAndValue(this.fromJsonState.schema, result);
+  SchemaAndValue processJsonNode(JsonNode node, Schema schema, FromJsonVisitor jsonVisitor) {
+    Object result = jsonVisitor.visit(node);
+    return new SchemaAndValue(schema, result);
   }
 
 
-  void validateJson(JSONObject jsonObject) {
+  void validateJson(JSONObject jsonObject, org.everit.json.schema.Schema jsonSchema) {
     try {
-      this.fromJsonState.jsonSchema.validate(jsonObject);
+      jsonSchema.validate(jsonObject);
     } catch (ValidationException ex) {
       StringBuilder builder = new StringBuilder();
       builder.append(
@@ -95,14 +99,16 @@ public class FromJson<R extends ConnectRecord<R>> extends BaseKeyValueTransforma
   @Override
   protected SchemaAndValue processBytes(R record, Schema inputSchema, byte[] input) {
     try {
+      JsonNode node = this.objectMapper.readValue(input, JsonNode.class);
+      org.everit.json.schema.Schema jsonSchema = this.schemaResolver.resolveSchema(record, inputSchema, node);
+      FromJsonState fromJsonState = this.fromJsonSchemaConverterFactory.fromJSON(jsonSchema);
       if (this.config.validateJson) {
         try (InputStream inputStream = new ByteArrayInputStream(input)) {
           JSONObject jsonObject = Utils.loadObject(inputStream);
-          validateJson(jsonObject);
+          validateJson(jsonObject, fromJsonState.jsonSchema);
         }
       }
-      JsonNode node = this.objectMapper.readValue(input, JsonNode.class);
-      return processJsonNode(record, inputSchema, node);
+      return processJsonNode(node, fromJsonState.schema, fromJsonState.visitor);
     } catch (IOException e) {
       throw new DataException(e);
     }
@@ -111,50 +117,26 @@ public class FromJson<R extends ConnectRecord<R>> extends BaseKeyValueTransforma
   @Override
   protected SchemaAndValue processString(R record, Schema inputSchema, String input) {
     try {
+      JsonNode node = this.objectMapper.readValue(input, JsonNode.class);
+      org.everit.json.schema.Schema jsonSchema = this.schemaResolver.resolveSchema(record, inputSchema, node);
+      FromJsonState fromJsonState = this.fromJsonSchemaConverterFactory.fromJSON(jsonSchema);
       if (this.config.validateJson) {
         try (Reader reader = new StringReader(input)) {
           JSONObject jsonObject = Utils.loadObject(reader);
-          validateJson(jsonObject);
+          validateJson(jsonObject, fromJsonState.jsonSchema);
         }
       }
-      JsonNode node = this.objectMapper.readValue(input, JsonNode.class);
-      return processJsonNode(record, inputSchema, node);
+      return processJsonNode(node, fromJsonState.schema, fromJsonState.visitor);
     } catch (IOException e) {
       throw new DataException(e);
     }
   }
 
-  FromJsonState fromJsonState;
-  FromJsonSchemaConverterFactory fromJsonSchemaConverterFactory;
-  ObjectMapper objectMapper;
-
   @Override
   public void configure(Map<String, ?> map) {
     this.config = new FromJsonConfig(map);
     this.fromJsonSchemaConverterFactory = new FromJsonSchemaConverterFactory(config);
-
-    org.everit.json.schema.Schema schema;
-    if (JsonConfig.SchemaLocation.Url == this.config.schemaLocation) {
-      try {
-        try (InputStream inputStream = this.config.schemaUrl.openStream()) {
-          schema = Utils.loadSchema(inputStream);
-        }
-      } catch (IOException e) {
-        ConfigException exception = new ConfigException(JsonConfig.SCHEMA_URL_CONF, this.config.schemaUrl, "exception while loading schema");
-        exception.initCause(e);
-        throw exception;
-      }
-    } else if (JsonConfig.SchemaLocation.Inline == this.config.schemaLocation) {
-      schema = Utils.loadSchema(this.config.schemaText);
-    } else {
-      throw new ConfigException(
-          JsonConfig.SCHEMA_LOCATION_CONF,
-          this.config.schemaLocation.toString(),
-          "Location is not supported"
-      );
-    }
-
-    this.fromJsonState = this.fromJsonSchemaConverterFactory.fromJSON(schema);
+    this.schemaResolver = SchemaResolverFactory.getInstance(config);
     this.objectMapper = JacksonFactory.create();
   }
 
