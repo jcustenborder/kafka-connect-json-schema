@@ -65,6 +65,11 @@
             <artifactId>org.everit.json.schema</artifactId>
             <version>1.12.1</version>
         </dependency>
+        <dependency>
+            <groupId>commons-collections</groupId>
+            <artifactId>commons-collections</artifactId>
+            <version>3.2.2</version>
+        </dependency>
     </dependencies>
     <repositories>
         <repository>
@@ -91,6 +96,10 @@
                     <title>Kafka Connect JSON Schema Transformations</title>
                     <supportUrl>${pom.issueManagement.url}</supportUrl>
                     <supportSummary>Support provided through community involvement.</supportSummary>
+                    <ownerUsername>jcustenborder</ownerUsername>
+                    <ownerType>individual</ownerType>
+                    <ownerName>Jeremy Custenborder</ownerName>
+                    <ownerUrl>https://jcustenborder.github.io/</ownerUrl>
                     <excludes>
                         <exclude>org.reflections:reflections</exclude>
                     </excludes>

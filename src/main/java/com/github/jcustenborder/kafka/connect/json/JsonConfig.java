@@ -31,6 +31,8 @@ import java.util.Set;
 class JsonConfig extends AbstractConfig {
   public static final String SCHEMA_URL_CONF = "json.schema.url";
   public static final String SCHEMA_INLINE_CONF = "json.schema.inline";
+  public static final String SCHEMA_FIELD_NAME_CONF = "json.schema.field.name";
+  public static final String SCHEMA_FIELD_URL_CONF = "json.schema.field.url";
   public static final String SCHEMA_LOCATION_CONF = "json.schema.location";
   public static final String VALIDATE_JSON_ENABLED_CONF = "json.schema.validation.enabled";
   public static final String EXCLUDE_LOCATIONS_CONF = "json.exclude.locations";
@@ -38,6 +40,11 @@ class JsonConfig extends AbstractConfig {
       "supported by URL.openStream(). For example the local filesystem file:///schemas/something.json. " +
       "A web address https://www.schemas.com/something.json";
   static final String SCHEMA_INLINE_DOC = "The JSON schema to use as an escaped string.";
+  static final String SCHEMA_FIELD_NAME_DOC = "The event field to use for looking up the schema.  Can either " +
+      "be an inline schema, or if json.schema.field.url is specified, the ID/name of the schema to put in a " +
+      "URL template. For example:  http://mysite.com/schemas/{schema_id}";
+  static final String SCHEMA_FIELD_URL_DOC = "The URL template to use for looking up schemas by ID/name. " +
+      "For example:  http://mysite.com/schemas/{schema_id}";
   static final String SCHEMA_LOCATION_DOC = "Location to retrieve the schema from. " +
       ConfigUtils.enumDescription(SchemaLocation.class);
   static final String VALIDATE_JSON_ENABLED_DOC = "Flag to determine if the JSON should be validated " +
@@ -52,7 +59,8 @@ class JsonConfig extends AbstractConfig {
     this.schemaText = getString(SCHEMA_INLINE_CONF);
     this.validateJson = getBoolean(VALIDATE_JSON_ENABLED_CONF);
     this.excludeLocations = ConfigUtils.getSet(this, EXCLUDE_LOCATIONS_CONF);
-
+    this.schemaEventField = getString(SCHEMA_FIELD_NAME_CONF);
+    this.schemaEventUrlTemplate = getString(SCHEMA_FIELD_URL_CONF);
   }
 
 
@@ -60,7 +68,9 @@ class JsonConfig extends AbstractConfig {
     @Description("Loads the schema from the url specified in `" + SCHEMA_URL_CONF + "`.")
     Url,
     @Description("Loads the schema from `" + SCHEMA_INLINE_CONF + "` as an inline string.")
-    Inline
+    Inline,
+    @Description("Loads the schema from an event field specified in `" + SCHEMA_FIELD_NAME_CONF + "`.")
+    Field
   }
 
   public final URL schemaUrl;
@@ -68,6 +78,8 @@ class JsonConfig extends AbstractConfig {
   public final String schemaText;
   public final boolean validateJson;
   public final Set<String> excludeLocations;
+  public final String schemaEventField;
+  public final String schemaEventUrlTemplate;
 
   public static ConfigDef config() {
     return new ConfigDef().define(
@@ -104,6 +116,19 @@ class JsonConfig extends AbstractConfig {
             .documentation(EXCLUDE_LOCATIONS_DOC)
             .defaultValue(Collections.EMPTY_LIST)
             .importance(ConfigDef.Importance.LOW)
+            .build()
+    ).define(
+        ConfigKeyBuilder.of(SCHEMA_FIELD_NAME_CONF, ConfigDef.Type.STRING)
+            .documentation(SCHEMA_FIELD_NAME_DOC)
+            .importance(ConfigDef.Importance.HIGH)
+            .recommender(Recommenders.visibleIf(SCHEMA_LOCATION_CONF, SchemaLocation.Field.toString()))
+            .defaultValue("")
+            .build()
+    ).define(
+        ConfigKeyBuilder.of(SCHEMA_FIELD_URL_CONF, ConfigDef.Type.STRING)
+            .documentation(SCHEMA_FIELD_URL_DOC)
+            .importance(ConfigDef.Importance.HIGH)
+            .defaultValue("")
             .build()
     );
   }

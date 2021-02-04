@@ -16,24 +16,23 @@
 package com.github.jcustenborder.kafka.connect.json;
 
 import org.apache.kafka.common.config.ConfigException;
-import org.apache.kafka.connect.connector.ConnectRecord;
+import org.everit.json.schema.Schema;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
 
-public class SchemaResolverFactory {
-  public static <R extends ConnectRecord<R>> SchemaResolver<R> getInstance(JsonConfig config) {
-    switch (config.schemaLocation) {
-      case Url:
-        return new UrlSchemaResolver(config.schemaUrl, new DefaultSchemaDownloader());
-      case Inline:
-        return new InlineSchemaResolver(config.schemaText);
-      case Field:
-        return new FieldSchemaResolver(config.schemaEventField, config.schemaEventUrlTemplate, new DefaultSchemaDownloader());
-      default:
-        throw new ConfigException(
-            JsonConfig.SCHEMA_LOCATION_CONF,
-            config.schemaLocation.toString(),
-            "Location is not supported"
-        );
+public class DefaultSchemaDownloader implements SchemaDownloader {
+  @Override
+  public Schema downloadSchema(URL schemaUrl) {
+    try {
+      try (InputStream inputStream = schemaUrl.openStream()) {
+        return Utils.loadSchema(inputStream);
+      }
+    } catch (IOException e) {
+      ConfigException exception = new ConfigException(JsonConfig.SCHEMA_URL_CONF, schemaUrl, "error downloading schema");
+      exception.initCause(e);
+      throw exception;
     }
   }
 }

@@ -16,31 +16,20 @@
 package com.github.jcustenborder.kafka.connect.json;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.connect.connector.ConnectRecord;
 import org.everit.json.schema.Schema;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.net.URL;
 
-public class UrlSchemaResolver implements SchemaResolver {
-  private Schema schema;
+public class UrlSchemaResolver<R extends ConnectRecord<R>> implements SchemaResolver<R> {
+  private final Schema schema;
 
-  protected UrlSchemaResolver(URL schemaUrl) {
-    try {
-      try (InputStream inputStream = schemaUrl.openStream()) {
-        schema = Utils.loadSchema(inputStream);
-      }
-    } catch (IOException e) {
-      ConfigException exception = new ConfigException(JsonConfig.SCHEMA_URL_CONF, schemaUrl, "exception while loading schema");
-      exception.initCause(e);
-      throw exception;
-    }
+  protected UrlSchemaResolver(URL schemaUrl, SchemaDownloader schemaDownloader) {
+    this.schema = schemaDownloader.downloadSchema(schemaUrl);
   }
 
   @Override
-  public Schema resolveSchema(ConnectRecord record, org.apache.kafka.connect.data.Schema inputSchema, JsonNode jsonNode) {
+  public Schema resolveSchema(R record, org.apache.kafka.connect.data.Schema inputSchema, JsonNode jsonNode) {
     return schema;
   }
 }

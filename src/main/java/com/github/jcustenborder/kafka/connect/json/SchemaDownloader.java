@@ -15,19 +15,10 @@
  */
 package com.github.jcustenborder.kafka.connect.json;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import org.apache.kafka.connect.connector.ConnectRecord;
 import org.everit.json.schema.Schema;
 
-public class InlineSchemaResolver<R extends ConnectRecord<R>> implements SchemaResolver<R> {
-  private final Schema schema;
+import java.net.URL;
 
-  protected InlineSchemaResolver(String schemaText) {
-    schema = Utils.loadSchema(schemaText);
-  }
-
-  @Override
-  public Schema resolveSchema(R record, org.apache.kafka.connect.data.Schema inputSchema, JsonNode jsonNode) {
-    return schema;
-  }
+public interface SchemaDownloader {
+  Schema downloadSchema(URL schemaUrl);
 }
