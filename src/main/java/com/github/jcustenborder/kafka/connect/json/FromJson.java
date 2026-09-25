@@ -44,7 +44,7 @@ import java.util.Map;
     "a connect structure based on the JSON schema provided.")
 @DocumentationTip("This transformation expects data to be in either String or Byte format. You are " +
     "most likely going to use the ByteArrayConverter or the StringConverter.")
-public class FromJson<R extends ConnectRecord<R>> extends BaseKeyValueTransformation<R> {
+public abstract class FromJson<R extends ConnectRecord<R>> extends BaseKeyValueTransformation<R> {
   private static final Logger log = LoggerFactory.getLogger(FromJson.class);
   FromJsonConfig config;
 
