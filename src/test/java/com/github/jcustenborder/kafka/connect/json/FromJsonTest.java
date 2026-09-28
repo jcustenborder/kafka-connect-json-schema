@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Modifier;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -70,6 +71,11 @@ public class FromJsonTest {
     assertTrue(transformedRecord.value() instanceof Struct);
     Struct actual = (Struct) transformedRecord.value();
     log.info("actual = '{}'", actual);
+  }
+
+  @Test
+  public void shouldNotBeDiscoveredAsPlugin() {
+    assertTrue(Modifier.isAbstract(FromJson.class.getModifiers()));
   }
 
   @Test
